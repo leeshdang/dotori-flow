@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Kanban, ListFilter, Sliders, Plus, ShieldCheck, Lock, Unlock, LogOut, User, KeyRound } from 'lucide-react';
+import { Layers, Kanban, ListFilter, Sliders, Plus, ShieldCheck, Lock, Unlock, LogOut, User, KeyRound, Menu } from 'lucide-react';
 
 export default function Header({ 
   currentTab, 
@@ -23,19 +23,22 @@ export default function Header({
   return (
     <header className="navbar">
       <div className="nav-left">
-        <div className="brand">
-          <div 
-            className="brand-icon brand-icon-clickable" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenDrawer();
-            }}
-            title="Dotori Tools 메뉴 열기 (패밀리 사이트, About, License)"
-          >
+        {/* Brand Area with Drawer Trigger */}
+        <div 
+          className="brand" 
+          onClick={onOpenDrawer}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px', borderRadius: 6, transition: 'background-color 0.15s' }}
+          title="클릭하여 메뉴 열기 (celebmypet.com, dotoritools.com, About, License)"
+        >
+          <div className="brand-icon brand-icon-clickable" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px' }}>
+            <Menu size={18} />
             <Layers size={18} />
           </div>
-          <span onClick={() => setCurrentTab('board')} style={{ cursor: 'pointer' }}>
+          <span style={{ fontWeight: 700, fontSize: '1.15rem', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
             Dotori Flow
+            <span style={{ fontSize: '0.68rem', backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
+              메뉴 ▾
+            </span>
           </span>
         </div>
 
