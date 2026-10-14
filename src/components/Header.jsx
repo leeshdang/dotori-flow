@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Kanban, ListFilter, Sliders, Plus, ShieldCheck, Lock, Unlock, LogOut, User } from 'lucide-react';
+import { Layers, Kanban, ListFilter, Sliders, Plus, ShieldCheck, Lock, Unlock, LogOut, User, KeyRound } from 'lucide-react';
 
 export default function Header({ 
   currentTab, 
@@ -8,7 +8,8 @@ export default function Header({
   mandatoryCount,
   isAdmin,
   onOpenLoginModal,
-  onLogout
+  onLogout,
+  onOpenChangePasswordModal
 }) {
   const handleTabClick = (tabId) => {
     if (tabId === 'admin' && !isAdmin) {
@@ -69,6 +70,15 @@ export default function Header({
               <ShieldCheck size={13} style={{ display: 'inline', marginRight: 4 }} />
               Admin
             </div>
+            <button 
+              onClick={onOpenChangePasswordModal}
+              className="btn-secondary"
+              style={{ padding: '6px 10px', fontSize: '0.8rem', backgroundColor: 'rgba(255,255,255,0.22)', color: 'white', display: 'flex', alignItems: 'center', gap: 4 }}
+              title="관리자 비밀번호 변경"
+            >
+              <KeyRound size={13} />
+              비밀번호 변경
+            </button>
             <button 
               onClick={onLogout}
               className="btn-secondary"

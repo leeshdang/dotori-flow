@@ -232,10 +232,11 @@ export default function AdminFieldSettings({
           <button 
             className="btn-secondary" 
             onClick={() => setShowPasswordModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', color: 'white' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: '#ffffff', color: '#0747a6', fontWeight: 700, border: '1px solid #ffffff' }}
+            title="관리자 비밀번호 변경"
           >
             <KeyRound size={15} />
-            비밀번호 변경
+            🔑 비밀번호 변경
           </button>
 
           <button 
