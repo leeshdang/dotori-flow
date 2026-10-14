@@ -7,6 +7,9 @@ import CreateIssueModal from './components/CreateIssueModal';
 import IssueDetailModal from './components/IssueDetailModal';
 import AdminLoginModal from './components/AdminLoginModal';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import SideMenuDrawer from './components/SideMenuDrawer';
+import AboutModal from './components/AboutModal';
+import LicenseModal from './components/LicenseModal';
 import { INITIAL_FIELDS, INITIAL_ISSUES } from './constants/initialData';
 import { validateTicketIntegrity } from './utils/security';
 import { CheckCircle2, ShieldCheck, AlertTriangle } from 'lucide-react';
@@ -55,6 +58,9 @@ export default function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isLicenseOpen, setIsLicenseOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [bannerNotice, setBannerNotice] = useState(null);
 
@@ -169,6 +175,7 @@ export default function App() {
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
         onOpenChangePasswordModal={() => setIsChangePasswordOpen(true)}
+        onOpenDrawer={() => setIsDrawerOpen(true)}
       />
 
       {/* Main View Area */}
@@ -301,6 +308,26 @@ export default function App() {
         isOpen={isChangePasswordOpen}
         onClose={() => setIsChangePasswordOpen(false)}
         onSuccess={(msg) => showNotification(msg)}
+      />
+
+      {/* Side Menu Drawer (패밀리 링크, About, License) */}
+      <SideMenuDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onOpenAbout={() => setIsAboutOpen(true)}
+        onOpenLicense={() => setIsLicenseOpen(true)}
+      />
+
+      {/* About Modal */}
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
+      />
+
+      {/* License Modal */}
+      <LicenseModal
+        isOpen={isLicenseOpen}
+        onClose={() => setIsLicenseOpen(false)}
       />
     </div>
   );

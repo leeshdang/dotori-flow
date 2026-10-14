@@ -9,7 +9,8 @@ export default function Header({
   isAdmin,
   onOpenLoginModal,
   onLogout,
-  onOpenChangePasswordModal
+  onOpenChangePasswordModal,
+  onOpenDrawer
 }) {
   const handleTabClick = (tabId) => {
     if (tabId === 'admin' && !isAdmin) {
@@ -22,11 +23,20 @@ export default function Header({
   return (
     <header className="navbar">
       <div className="nav-left">
-        <div className="brand" onClick={() => setCurrentTab('board')}>
-          <div className="brand-icon">
+        <div className="brand">
+          <div 
+            className="brand-icon brand-icon-clickable" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenDrawer();
+            }}
+            title="Dotori Tools 메뉴 열기 (패밀리 사이트, About, License)"
+          >
             <Layers size={18} />
           </div>
-          <span>Dotori Flow</span>
+          <span onClick={() => setCurrentTab('board')} style={{ cursor: 'pointer' }}>
+            Dotori Flow
+          </span>
         </div>
 
         <div className="project-badge">

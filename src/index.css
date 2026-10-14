@@ -689,3 +689,129 @@ input:checked + .toggle-slider:before {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Side Menu Drawer */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(9, 30, 66, 0.54);
+  backdrop-filter: blur(2px);
+  z-index: 1200;
+  animation: fadeIn 0.2s ease;
+}
+
+.drawer-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 320px;
+  max-width: 85vw;
+  background-color: #ffffff;
+  box-shadow: 4px 0 24px rgba(9, 30, 66, 0.2);
+  display: flex;
+  flex-direction: column;
+  z-index: 1210;
+  animation: slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.drawer-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--theme-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drawer-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.drawer-section {
+  margin-bottom: 24px;
+}
+
+.drawer-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-sub);
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drawer-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawer-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+
+.drawer-nav-item:hover {
+  background-color: #f4f5f7;
+  border-color: #dfe1e6;
+  transform: translateX(3px);
+}
+
+.drawer-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.drawer-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--theme-border);
+  background-color: #fafbfc;
+  line-height: 1.5;
+}
+
+/* Brand icon hover enhancement */
+.brand-icon-clickable {
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+}
+
+.brand-icon-clickable:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
