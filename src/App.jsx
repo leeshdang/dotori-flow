@@ -10,6 +10,8 @@ import ChangePasswordModal from './components/ChangePasswordModal';
 import SideMenuDrawer from './components/SideMenuDrawer';
 import AboutModal from './components/AboutModal';
 import LicenseModal from './components/LicenseModal';
+import MobileBottomNav from './components/MobileBottomNav';
+import { useIsMobile } from './utils/useIsMobile';
 import { INITIAL_FIELDS, INITIAL_ISSUES } from './constants/initialData';
 import { validateTicketIntegrity } from './utils/security';
 import { CheckCircle2, ShieldCheck, AlertTriangle } from 'lucide-react';
@@ -54,6 +56,7 @@ export default function App() {
     }
   });
 
+  const isMobile = useIsMobile();
   const [currentTab, setCurrentTab] = useState('board'); // 'board' | 'list' | 'admin'
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -164,7 +167,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isMobile ? 'is-mobile-app' : 'is-desktop'}`}>
       {/* Navbar with Auth State */}
       <Header
         currentTab={currentTab}
@@ -176,6 +179,7 @@ export default function App() {
         onLogout={handleLogout}
         onOpenChangePasswordModal={() => setIsChangePasswordOpen(true)}
         onOpenDrawer={() => setIsDrawerOpen(true)}
+        isMobile={isMobile}
       />
 
       {/* Main View Area */}
@@ -187,13 +191,13 @@ export default function App() {
             border: `1px solid ${bannerNotice.isError ? '#ffbdad' : '#abf5d1'}`,
             borderRadius: 6,
             padding: '12px 18px',
-            marginBottom: 20,
+            marginBottom: 16,
             display: 'flex',
             alignItems: 'center',
             gap: 10,
             color: bannerNotice.isError ? '#bf2600' : '#006644',
             fontWeight: 600,
-            fontSize: '0.9rem',
+            fontSize: '0.88rem',
             animation: 'fadeIn 0.2s ease'
           }}>
             {bannerNotice.isError ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
@@ -229,8 +233,8 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {currentTab !== 'admin' && (
+          {!isMobile && currentTab !== 'admin' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button 
                 className="btn-secondary"
                 onClick={() => {
@@ -244,8 +248,8 @@ export default function App() {
               >
                 {isAdmin ? '필수 필드 설정 ⚙️' : '필드 설정 (관리자 전용 🔒)'}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Tab Views */}
@@ -255,6 +259,7 @@ export default function App() {
             fields={fields}
             onSelectIssue={setSelectedIssue}
             onChangeIssueStatus={handleChangeIssueStatus}
+            onOpenCreateModal={() => setIsCreateModalOpen(true)}
           />
         )}
 
@@ -276,6 +281,17 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Mobile App Bottom Navigation Bar */}
+      {isMobile && (
+        <MobileBottomNav
+          currentTab={currentTab}
+          setCurrentTab={setCurrentTab}
+          onOpenCreateModal={() => setIsCreateModalOpen(true)}
+          isAdmin={isAdmin}
+          onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        />
+      )}
 
       {/* Create Issue Modal (핵심 기능: 필수 필드 미입력 시 생성 불가) */}
       <CreateIssueModal

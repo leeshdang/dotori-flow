@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { INITIAL_FIELDS } from '../constants/initialData';
 import { updateAdminPassword } from '../utils/security';
+import { useIsMobile } from '../utils/useIsMobile';
 
 export default function AdminFieldSettings({ 
   fields, 
@@ -277,82 +278,89 @@ export default function AdminFieldSettings({
         </span>
       </div>
 
-      {/* Fields Table */}
-      <div className="settings-table-container">
-        <table className="settings-table">
-          <thead>
-            <tr>
-              <th style={{ width: '22%' }}>필드 이름</th>
-              <th style={{ width: '14%' }}>필드 유형</th>
-              <th style={{ width: '18%' }}>필수 입력 (Mandatory)</th>
-              <th style={{ width: '14%' }}>필드 활성화</th>
-              <th style={{ width: '22%' }}>설명 / 힌트</th>
-              <th style={{ width: '10%', textAlign: 'center' }}>관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fields.map(field => {
-              const isMandatory = field.isMandatory;
-              const isEnabled = field.isEnabled;
+      {/* Fields List: Mobile Cards vs Desktop Table */}
+      {isMobile ? (
+        <div className="mobile-admin-fields-list">
+          {fields.map(field => {
+            const isMandatory = field.isMandatory;
+            const isEnabled = field.isEnabled;
 
-              return (
-                <tr key={field.id} style={{ opacity: isEnabled ? 1 : 0.6 }}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <strong style={{ color: 'var(--text-main)' }}>{field.name}</strong>
-                      {field.isSystem ? (
-                        <span style={{ fontSize: '0.7rem', backgroundColor: '#ebecf0', color: '#5e6c84', padding: '1px 6px', borderRadius: 3 }}>
-                          기본
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.7rem', backgroundColor: '#e3fcef', color: '#006644', padding: '1px 6px', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Sparkles size={10} /> 커스텀
-                        </span>
-                      )}
-                    </div>
-                  </td>
+            return (
+              <div 
+                key={field.id} 
+                className="mobile-field-setting-card"
+                style={{ opacity: isEnabled ? 1 : 0.65 }}
+              >
+                {/* Field Header */}
+                <div className="mobile-field-card-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>{field.name}</strong>
+                    {field.isSystem ? (
+                      <span style={{ fontSize: '0.68rem', backgroundColor: '#ebecf0', color: '#5e6c84', padding: '2px 6px', borderRadius: 3 }}>
+                        기본
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.68rem', backgroundColor: '#e3fcef', color: '#006644', padding: '2px 6px', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Sparkles size={10} /> 커스텀
+                      </span>
+                    )}
+                  </div>
 
-                  <td>
+                  {!field.isSystem && (
+                    <button 
+                      type="button"
+                      onClick={() => handleDeleteField(field.id, field.name)}
+                      className="mobile-delete-btn"
+                      title="커스텀 필드 삭제"
+                      aria-label="삭제"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Field Type & Description */}
+                <div style={{ margin: '8px 0', fontSize: '0.82rem', color: 'var(--text-sub)' }}>
+                  <span style={{ 
+                    fontFamily: 'monospace', 
+                    fontSize: '0.75rem', 
+                    backgroundColor: '#f4f5f7', 
+                    padding: '2px 6px', 
+                    borderRadius: 4,
+                    border: '1px solid #dfe1e6',
+                    marginRight: 6
+                  }}>
+                    {field.type === 'textarea' ? 'Text Area (여러줄)' : 
+                     field.type === 'select' ? `Select (${field.options ? field.options.length : 0}개 옵션)` : 
+                     field.type === 'date' ? 'Date (날짜)' : 
+                     field.type === 'number' ? 'Number (숫자)' : 'Text (한줄)'}
+                  </span>
+                  <span>{field.description || ''}</span>
+                </div>
+
+                {/* Toggles Row */}
+                <div className="mobile-field-toggles-row">
+                  {/* Mandatory Switch */}
+                  <div className="mobile-toggle-group">
+                    <label className="toggle-switch">
+                      <input 
+                        type="checkbox"
+                        checked={isMandatory}
+                        onChange={() => handleToggleMandatory(field.id)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
                     <span style={{ 
-                      fontFamily: 'monospace', 
                       fontSize: '0.82rem', 
-                      backgroundColor: '#f4f5f7', 
-                      padding: '3px 8px', 
-                      borderRadius: 4,
-                      border: '1px solid #dfe1e6'
+                      fontWeight: 700, 
+                      color: isMandatory ? 'var(--color-danger)' : 'var(--text-sub)' 
                     }}>
-                      {field.type === 'textarea' ? 'Text Area (여러줄)' : 
-                       field.type === 'select' ? `Select (${field.options ? field.options.length : 0}개)` : 
-                       field.type === 'date' ? 'Date (날짜)' : 
-                       field.type === 'number' ? 'Number (숫자)' : 'Text (한줄)'}
+                      {isMandatory ? '★ 필수(Mandatory)' : '선택(Optional)'}
                     </span>
-                  </td>
+                  </div>
 
-                  {/* Mandatory Toggle */}
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <label className="toggle-switch">
-                        <input 
-                          type="checkbox"
-                          checked={isMandatory}
-                          onChange={() => handleToggleMandatory(field.id)}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                      {isMandatory ? (
-                        <span style={{ color: 'var(--color-danger)', fontWeight: 700, fontSize: '0.82rem' }}>
-                          ★ 필수 (Required)
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                          선택 (Optional)
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* Enabled Toggle */}
-                  <td>
+                  {/* Enabled Switch */}
+                  <div className="mobile-toggle-group">
                     <label className="toggle-switch">
                       <input 
                         type="checkbox"
@@ -361,34 +369,133 @@ export default function AdminFieldSettings({
                       />
                       <span className="toggle-slider" style={{ backgroundColor: isEnabled ? '#0052cc' : '#dfe1e6' }}></span>
                     </label>
-                    <span style={{ marginLeft: 8, fontSize: '0.82rem', color: isEnabled ? '#0052cc' : 'var(--text-muted)', fontWeight: 600 }}>
+                    <span style={{ 
+                      fontSize: '0.82rem', 
+                      fontWeight: 600, 
+                      color: isEnabled ? '#0052cc' : 'var(--text-muted)' 
+                    }}>
                       {isEnabled ? '사용 중' : '비활성'}
                     </span>
-                  </td>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Desktop Table View */
+        <div className="settings-table-container">
+          <table className="settings-table">
+            <thead>
+              <tr>
+                <th style={{ width: '22%' }}>필드 이름</th>
+                <th style={{ width: '14%' }}>필드 유형</th>
+                <th style={{ width: '18%' }}>필수 입력 (Mandatory)</th>
+                <th style={{ width: '14%' }}>필드 활성화</th>
+                <th style={{ width: '22%' }}>설명 / 힌트</th>
+                <th style={{ width: '10%', textAlign: 'center' }}>관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fields.map(field => {
+                const isMandatory = field.isMandatory;
+                const isEnabled = field.isEnabled;
 
-                  <td style={{ color: 'var(--text-sub)', fontSize: '0.82rem' }}>
-                    {field.description || '-'}
-                  </td>
+                return (
+                  <tr key={field.id} style={{ opacity: isEnabled ? 1 : 0.6 }}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <strong style={{ color: 'var(--text-main)' }}>{field.name}</strong>
+                        {field.isSystem ? (
+                          <span style={{ fontSize: '0.7rem', backgroundColor: '#ebecf0', color: '#5e6c84', padding: '1px 6px', borderRadius: 3 }}>
+                            기본
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.7rem', backgroundColor: '#e3fcef', color: '#006644', padding: '1px 6px', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Sparkles size={10} /> 커스텀
+                          </span>
+                        )}
+                      </div>
+                    </td>
 
-                  <td style={{ textAlign: 'center' }}>
-                    {!field.isSystem ? (
-                      <button 
-                        onClick={() => handleDeleteField(field.id, field.name)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#de350b', padding: 6, borderRadius: 4 }}
-                        title="커스텀 필드 삭제"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>고정</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                    <td>
+                      <span style={{ 
+                        fontFamily: 'monospace', 
+                        fontSize: '0.82rem', 
+                        backgroundColor: '#f4f5f7', 
+                        padding: '3px 8px', 
+                        borderRadius: 4,
+                        border: '1px solid #dfe1e6'
+                      }}>
+                        {field.type === 'textarea' ? 'Text Area (여러줄)' : 
+                         field.type === 'select' ? `Select (${field.options ? field.options.length : 0}개)` : 
+                         field.type === 'date' ? 'Date (날짜)' : 
+                         field.type === 'number' ? 'Number (숫자)' : 'Text (한줄)'}
+                      </span>
+                    </td>
+
+                    {/* Mandatory Toggle */}
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <label className="toggle-switch">
+                          <input 
+                            type="checkbox"
+                            checked={isMandatory}
+                            onChange={() => handleToggleMandatory(field.id)}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                        {isMandatory ? (
+                          <span style={{ color: 'var(--color-danger)', fontWeight: 700, fontSize: '0.82rem' }}>
+                            ★ 필수 (Required)
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                            선택 (Optional)
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Enabled Toggle */}
+                    <td>
+                      <label className="toggle-switch">
+                        <input 
+                          type="checkbox"
+                          checked={isEnabled}
+                          onChange={() => handleToggleEnabled(field.id)}
+                        />
+                        <span className="toggle-slider" style={{ backgroundColor: isEnabled ? '#0052cc' : '#dfe1e6' }}></span>
+                      </label>
+                      <span style={{ marginLeft: 8, fontSize: '0.82rem', color: isEnabled ? '#0052cc' : 'var(--text-muted)', fontWeight: 600 }}>
+                        {isEnabled ? '사용 중' : '비활성'}
+                      </span>
+                    </td>
+
+                    <td style={{ color: 'var(--text-sub)', fontSize: '0.82rem' }}>
+                      {field.description || '-'}
+                    </td>
+
+                    <td style={{ textAlign: 'center' }}>
+                      {!field.isSystem ? (
+                        <button 
+                          onClick={() => handleDeleteField(field.id, field.name)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#de350b', padding: 6, borderRadius: 4 }}
+                          title="커스텀 필드 삭제"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>고정</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Add Custom Field Modal */}
       {showAddModal && (

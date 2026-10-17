@@ -10,7 +10,8 @@ export default function Header({
   onOpenLoginModal,
   onLogout,
   onOpenChangePasswordModal,
-  onOpenDrawer
+  onOpenDrawer,
+  isMobile
 }) {
   const handleTabClick = (tabId) => {
     if (tabId === 'admin' && !isAdmin) {
@@ -21,22 +22,22 @@ export default function Header({
   };
 
   return (
-    <header className="navbar">
+    <header className={`navbar ${isMobile ? 'navbar-mobile' : 'navbar-desktop'}`}>
       <div className="nav-left">
         {/* Brand Area with Drawer Trigger */}
         <div 
           className="brand" 
           onClick={onOpenDrawer}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px', borderRadius: 6, transition: 'background-color 0.15s' }}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px', borderRadius: 6, transition: 'background-color 0.15s' }}
           title="클릭하여 메뉴 열기 (celebmypet.com, dotoritools.com, About, License)"
         >
           <div className="brand-icon brand-icon-clickable" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px' }}>
             <Menu size={18} />
             <Layers size={18} />
           </div>
-          <span style={{ fontWeight: 700, fontSize: '1.15rem', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="brand-title" style={{ fontWeight: 700, fontSize: '1.15rem', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
             Dotori Flow
-            <span style={{ fontSize: '0.68rem', backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
+            <span className="menu-indicator-badge" style={{ fontSize: '0.68rem', backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
               메뉴 ▾
             </span>
           </span>
@@ -44,10 +45,12 @@ export default function Header({
 
         <div className="project-badge">
           <span>Project:</span>
-          <strong>FLOW (Alpha Core)</strong>
+          <strong>FLOW</strong>
+          <span className="project-subtext"> (Alpha)</span>
         </div>
 
-        <nav className="nav-tabs">
+        {/* Desktop Navigation Tabs (Hidden on mobile) */}
+        <nav className="nav-tabs desktop-only">
           <button 
             className={`nav-tab-btn ${currentTab === 'board' ? 'active' : ''}`}
             onClick={() => handleTabClick('board')}
@@ -78,33 +81,33 @@ export default function Header({
       <div className="nav-right">
         {/* Role & Auth Status */}
         {isAdmin ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div className="admin-tag" style={{ backgroundColor: '#36b37e', color: '#ffffff' }} title="관리자 권한 활성화됨">
               <ShieldCheck size={13} style={{ display: 'inline', marginRight: 4 }} />
               Admin
             </div>
             <button 
               onClick={onOpenChangePasswordModal}
-              className="btn-secondary"
+              className="btn-secondary nav-action-btn"
               style={{ padding: '6px 10px', fontSize: '0.8rem', backgroundColor: 'rgba(255,255,255,0.22)', color: 'white', display: 'flex', alignItems: 'center', gap: 4 }}
               title="관리자 비밀번호 변경"
             >
               <KeyRound size={13} />
-              비밀번호 변경
+              <span className="desktop-only-inline">비밀번호 변경</span>
             </button>
             <button 
               onClick={onLogout}
-              className="btn-secondary"
+              className="btn-secondary nav-action-btn"
               style={{ padding: '6px 10px', fontSize: '0.8rem', backgroundColor: 'rgba(255,255,255,0.18)', color: 'white' }}
               title="관리자 모드 종료"
             >
               <LogOut size={13} style={{ display: 'inline', marginRight: 4 }} />
-              로그아웃
+              <span className="desktop-only-inline">로그아웃</span>
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ 
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="desktop-only" style={{ 
               fontSize: '0.78rem', 
               color: 'rgba(255,255,255,0.85)', 
               display: 'flex', 
@@ -119,18 +122,19 @@ export default function Header({
             </div>
             <button 
               onClick={onOpenLoginModal}
-              className="btn-secondary"
+              className="btn-secondary nav-action-btn"
               style={{ padding: '6px 10px', fontSize: '0.8rem', backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
               title="관리자 권한 획득을 위해 로그인"
             >
               <Lock size={13} style={{ display: 'inline', marginRight: 4 }} />
-              관리자 로그인
+              <span>로그인</span>
             </button>
           </div>
         )}
 
+        {/* Desktop Create Button (Hidden on Mobile, as Mobile has FAB/Bottom Nav) */}
         <button 
-          className="btn-create-issue" 
+          className="btn-create-issue desktop-only" 
           onClick={onOpenCreateModal}
           title="새로운 티켓 생성"
         >

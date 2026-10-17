@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Layers, CheckCircle2, ShieldCheck, Sparkles, Sliders } from 'lucide-react';
+import { APP_VERSION } from '../constants/version';
 
 export default function AboutModal({ isOpen, onClose }) {
   if (!isOpen) return null;
@@ -32,13 +33,14 @@ export default function AboutModal({ isOpen, onClose }) {
               display: 'inline-block',
               backgroundColor: '#deebff',
               color: '#0052cc',
-              fontSize: '0.78rem',
+              fontSize: '0.8rem',
               fontWeight: 700,
-              padding: '3px 10px',
+              padding: '4px 12px',
               borderRadius: 12,
-              marginTop: 6
+              marginTop: 6,
+              fontFamily: 'monospace'
             }}>
-              Version 1.0.0 (Production Release)
+              {APP_VERSION}
             </div>
           </div>
 

@@ -12,6 +12,7 @@ import {
   BookOpen,
   Download
 } from 'lucide-react';
+import { APP_VERSION } from '../constants/version';
 
 export default function SideMenuDrawer({ 
   isOpen, 
@@ -176,6 +177,9 @@ export default function SideMenuDrawer({
 
         {/* Drawer Footer */}
         <div className="drawer-footer">
+          <div style={{ fontSize: '0.78rem', color: 'var(--theme-primary)', fontWeight: 700, fontFamily: 'monospace', marginBottom: 4 }}>
+            {APP_VERSION}
+          </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             © 2026 Dotori Tools. All rights reserved.<br />
             Powered by Modern React & Vite Architecture.
