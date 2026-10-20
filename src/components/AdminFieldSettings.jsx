@@ -3,14 +3,13 @@ import {
   Sliders, 
   Plus, 
   Trash2, 
-  AlertCircle, 
   CheckCircle, 
   RotateCcw,
   Sparkles,
   Info,
   Lock,
   KeyRound,
-  ShieldAlert
+  ArrowLeft
 } from 'lucide-react';
 import { INITIAL_FIELDS } from '../constants/initialData';
 import { updateAdminPassword } from '../utils/security';
@@ -20,8 +19,10 @@ export default function AdminFieldSettings({
   fields, 
   setFields, 
   isAdmin, 
-  onOpenLoginModal 
+  onOpenLoginModal,
+  onBackToBoard
 }) {
+  const isMobile = useIsMobile();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -76,14 +77,28 @@ export default function AdminFieldSettings({
           티켓의 필수 입력 필드(Mandatory)를 설정하거나 새로운 커스텀 필드를 추가/삭제하려면<br />
           <strong>관리자 권한 인증(로그인)</strong>이 필요합니다.
         </p>
-        <button 
-          className="btn-primary" 
-          onClick={onOpenLoginModal}
-          style={{ margin: '0 auto', padding: '10px 24px', fontSize: '0.95rem' }}
-        >
-          <Lock size={16} />
-          관리자 암호로 로그인하기
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {onBackToBoard && (
+            <button 
+              type="button"
+              className="btn-secondary" 
+              onClick={onBackToBoard}
+              style={{ padding: '10px 18px', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <ArrowLeft size={16} />
+              메인(칸반 보드)으로 돌아가기
+            </button>
+          )}
+          <button 
+            type="button"
+            className="btn-primary" 
+            onClick={onOpenLoginModal}
+            style={{ padding: '10px 22px', fontSize: '0.95rem' }}
+          >
+            <Lock size={16} />
+            관리자 암호로 로그인하기
+          </button>
+        </div>
       </div>
     );
   }
@@ -229,8 +244,22 @@ export default function AdminFieldSettings({
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {onBackToBoard && (
+            <button 
+              type="button"
+              className="btn-secondary" 
+              onClick={onBackToBoard}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.25)', color: '#ffffff', fontWeight: 600, border: '1px solid rgba(255,255,255,0.4)' }}
+              title="메인 칸반 보드로 돌아가기"
+            >
+              <ArrowLeft size={15} />
+              메인 보드로 돌아가기
+            </button>
+          )}
+
           <button 
+            type="button"
             className="btn-secondary" 
             onClick={() => setShowPasswordModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: '#ffffff', color: '#0747a6', fontWeight: 700, border: '1px solid #ffffff' }}
