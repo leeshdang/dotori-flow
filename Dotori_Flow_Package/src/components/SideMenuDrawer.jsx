@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Dotori Tools
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import React from 'react';
 import { 
   X, 
@@ -8,8 +24,11 @@ import {
   Sparkles, 
   Layers,
   Heart,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen,
+  Download
 } from 'lucide-react';
+import { APP_VERSION } from '../constants/version';
 
 export default function SideMenuDrawer({ 
   isOpen, 
@@ -97,6 +116,40 @@ export default function SideMenuDrawer({
               <span>서비스 정보 및 법적 고지</span>
             </div>
             <div className="drawer-nav-list">
+              <a 
+                href="/Dotori_Flow_Setup_Manual.html" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="drawer-nav-item"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="drawer-icon-box" style={{ backgroundColor: '#deebff', color: '#0052cc' }}>
+                    <BookOpen size={16} />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>독립 환경 구축 매뉴얼</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>나만의 독립 Jira 환경 만들기 상세 가이드</div>
+                  </div>
+                </div>
+                <ExternalLink size={15} style={{ color: 'var(--text-muted)' }} />
+              </a>
+
+              <a 
+                href="/Dotori_Flow_Starter_Kit.zip" 
+                download="Dotori_Flow_Starter_Kit.zip" 
+                className="drawer-nav-item"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="drawer-icon-box" style={{ backgroundColor: '#fff0b3', color: '#b45309' }}>
+                    <Download size={16} />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>스타터 킷 다운로드 (ZIP)</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>배포용 소스코드 패키지 (.zip)</div>
+                  </div>
+                </div>
+              </a>
+
               <button 
                 type="button" 
                 className="drawer-nav-item" 
@@ -140,6 +193,9 @@ export default function SideMenuDrawer({
 
         {/* Drawer Footer */}
         <div className="drawer-footer">
+          <div style={{ fontSize: '0.78rem', color: 'var(--theme-primary)', fontWeight: 700, fontFamily: 'monospace', marginBottom: 4 }}>
+            {APP_VERSION}
+          </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             © 2026 Dotori Tools. All rights reserved.<br />
             Powered by Modern React & Vite Architecture.

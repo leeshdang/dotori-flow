@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Dotori Tools
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import KanbanBoard from './components/KanbanBoard';
@@ -5,18 +21,32 @@ import ListView from './components/ListView';
 import AdminFieldSettings from './components/AdminFieldSettings';
 import CreateIssueModal from './components/CreateIssueModal';
 import IssueDetailModal from './components/IssueDetailModal';
-import AdminLoginModal from './components/AdminLoginModal';
+import LoginModal from './components/LoginModal';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import SideMenuDrawer from './components/SideMenuDrawer';
 import AboutModal from './components/AboutModal';
 import LicenseModal from './components/LicenseModal';
+import MobileBottomNav from './components/MobileBottomNav';
+import { useIsMobile } from './utils/useIsMobile';
 import { INITIAL_FIELDS, INITIAL_ISSUES } from './constants/initialData';
 import { validateTicketIntegrity } from './utils/security';
-import { CheckCircle2, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { getStoredGoogleUser, removeStoredGoogleUser } from './utils/googleAuth';
+import { CheckCircle2, ShieldCheck, AlertTriangle, ArrowLeft } from 'lucide-react';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const STORAGE_KEY_FIELDS = 'dotori_flow_fields_v1';
 const STORAGE_KEY_ISSUES = 'dotori_flow_issues_v1';
 const STORAGE_KEY_ADMIN_SESSION = 'dotori_flow_admin_session_v1';
+
+// URL 해시(#board, #list, #admin)로부터 현재 탭 복원
+const getTabFromHash = () => {
+  if (typeof window === 'undefined') return 'board';
+  const hash = window.location.hash.replace('#', '').trim();
+  if (['board', 'list', 'admin'].includes(hash)) {
+    return hash;
+  }
+  return 'board';
+};
 
 export default function App() {
   // 로컬스토리지에서 필드 및 이슈 복원
@@ -45,16 +75,22 @@ export default function App() {
     }
   });
 
-  // 관리자 인증 상태 (세션 기반)
+  // Google 로그인 사용자 상태
+  const [currentUser, setCurrentUser] = useState(() => getStoredGoogleUser());
+
+  // 관리자 인증 상태 (세션 기반 및 Google 관리자 계정 연동)
   const [isAdmin, setIsAdmin] = useState(() => {
     try {
+      const storedUser = getStoredGoogleUser();
+      if (storedUser && storedUser.isAdmin) return true;
       return sessionStorage.getItem(STORAGE_KEY_ADMIN_SESSION) === 'true';
-    } catch (e) {
+    } catch {
       return false;
     }
   });
 
-  const [currentTab, setCurrentTab] = useState('board'); // 'board' | 'list' | 'admin'
+  const isMobile = useIsMobile();
+  const [currentTab, setCurrentTab] = useState(getTabFromHash);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -63,6 +99,78 @@ export default function App() {
   const [isLicenseOpen, setIsLicenseOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [bannerNotice, setBannerNotice] = useState(null);
+
+  // 탭 네비게이션 및 브라우저 히스토리/해시 연동 (뒤로가기 시 메인 보드 복귀 지원)
+  const navigateToTab = (tabId, replace = false) => {
+    if (tabId === 'admin' && !isAdmin) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+    setCurrentTab(tabId);
+    const targetHash = tabId === 'board' ? '' : `#${tabId}`;
+    if (window.location.hash !== targetHash) {
+      const newUrl = window.location.pathname + (targetHash ? targetHash : '');
+      if (replace) {
+        window.history.replaceState({ tab: tabId }, '', newUrl);
+      } else {
+        window.history.pushState({ tab: tabId }, '', newUrl);
+      }
+    }
+  };
+
+  // 브라우저 뒤로가기(Back) 및 URL 해시 변경 감지
+  useEffect(() => {
+    const handlePopState = () => {
+      // 1. 모달이 열려 있는 상태에서 Back을 누르면 사이트 이탈 방지 및 모달 닫기
+      if (isCreateModalOpen) {
+        setIsCreateModalOpen(false);
+        return;
+      }
+      if (selectedIssue) {
+        setSelectedIssue(null);
+        return;
+      }
+      if (isDrawerOpen) {
+        setIsDrawerOpen(false);
+        return;
+      }
+      if (isLoginModalOpen) {
+        setIsLoginModalOpen(false);
+        return;
+      }
+      if (isChangePasswordOpen) {
+        setIsChangePasswordOpen(false);
+        return;
+      }
+      if (isAboutOpen) {
+        setIsAboutOpen(false);
+        return;
+      }
+      if (isLicenseOpen) {
+        setIsLicenseOpen(false);
+        return;
+      }
+
+      // 2. 해시 변경에 따른 탭 동기화 (예: #admin에서 Back 누르면 메인 board로 복원)
+      const tab = getTabFromHash();
+      setCurrentTab(tab);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
+  }, [
+    isCreateModalOpen,
+    selectedIssue,
+    isDrawerOpen,
+    isLoginModalOpen,
+    isChangePasswordOpen,
+    isAboutOpen,
+    isLicenseOpen
+  ]);
 
   // 로컬스토리지 자동 저장
   useEffect(() => {
@@ -93,21 +201,30 @@ export default function App() {
     setTimeout(() => setBannerNotice(null), 4500);
   };
 
-  // 관리자 로그인 처리
-  const handleLoginSuccess = () => {
-    setIsAdmin(true);
-    showNotification('관리자(Admin) 권한으로 성공적으로 인증되었습니다! 이제 모든 필드를 설정할 수 있습니다.');
-    if (currentTab === 'admin') {
-      // 이미 admin 탭에 있었다면 화면 갱신
+  // 로그인 성공 처리 (Google 로그인 및 관리자 인증)
+  const handleLoginSuccess = (user, isAdminRole) => {
+    if (user) {
+      setCurrentUser(user);
+    }
+    if (isAdminRole) {
+      setIsAdmin(true);
+      sessionStorage.setItem(STORAGE_KEY_ADMIN_SESSION, 'true');
+      showNotification(`인증 완료: ${user?.name ? `${user.name} 님의 ` : ''}관리자 권한이 활성화되었습니다.`);
+      navigateToTab('admin');
+    } else {
+      showNotification(`${user?.name || '사용자'}님, Google 계정으로 로그인되었습니다.`);
     }
   };
 
-  // 관리자 로그아웃 처리
+  // 로그아웃 처리
   const handleLogout = () => {
     setIsAdmin(false);
-    showNotification('관리자 모드에서 로그아웃되었습니다. (일반 사용자 모드로 전환)');
+    setCurrentUser(null);
+    removeStoredGoogleUser();
+    sessionStorage.removeItem(STORAGE_KEY_ADMIN_SESSION);
+    showNotification('로그아웃되었습니다.');
     if (currentTab === 'admin') {
-      setCurrentTab('board');
+      navigateToTab('board', true);
     }
   };
 
@@ -164,18 +281,20 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isMobile ? 'is-mobile-app' : 'is-desktop'}`}>
       {/* Navbar with Auth State */}
       <Header
         currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        setCurrentTab={navigateToTab}
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
         mandatoryCount={mandatoryFields.length}
         isAdmin={isAdmin}
+        currentUser={currentUser}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
         onOpenChangePasswordModal={() => setIsChangePasswordOpen(true)}
         onOpenDrawer={() => setIsDrawerOpen(true)}
+        isMobile={isMobile}
       />
 
       {/* Main View Area */}
@@ -187,13 +306,13 @@ export default function App() {
             border: `1px solid ${bannerNotice.isError ? '#ffbdad' : '#abf5d1'}`,
             borderRadius: 6,
             padding: '12px 18px',
-            marginBottom: 20,
+            marginBottom: 16,
             display: 'flex',
             alignItems: 'center',
             gap: 10,
             color: bannerNotice.isError ? '#bf2600' : '#006644',
             fontWeight: 600,
-            fontSize: '0.9rem',
+            fontSize: '0.88rem',
             animation: 'fadeIn 0.2s ease'
           }}>
             {bannerNotice.isError ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
@@ -204,8 +323,8 @@ export default function App() {
         {/* View Header */}
         <div className="view-header">
           <div className="view-title-group">
-            <h1>
-              {currentTab === 'board' && '칸반 보드 (Board)'}
+            <h1 style={currentTab === 'board' ? { fontSize: isMobile ? '1.02rem' : '1.25rem', lineHeight: 1.4, wordBreak: 'keep-all' } : {}}>
+              {currentTab === 'board' && '안정적인 도토리툴즈 앱을 위해 버그 발견시 꼭 우상단 버그 리포트 하기 버튼을 눌러주세요~'}
               {currentTab === 'list' && '이슈 리스트 (All Issues)'}
               {currentTab === 'admin' && '관리자 필드 관리 콘솔'}
             </h1>
@@ -230,12 +349,26 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {currentTab !== 'admin' && (
+            {currentTab === 'admin' && (
               <button 
+                type="button"
+                className="btn-secondary"
+                onClick={() => navigateToTab('board')}
+                style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}
+                title="메인 칸반 보드로 돌아가기"
+              >
+                <ArrowLeft size={15} />
+                메인(칸반 보드)으로 돌아가기
+              </button>
+            )}
+
+            {!isMobile && currentTab !== 'admin' && (
+              <button 
+                type="button"
                 className="btn-secondary"
                 onClick={() => {
                   if (isAdmin) {
-                    setCurrentTab('admin');
+                    navigateToTab('admin');
                   } else {
                     setIsLoginModalOpen(true);
                   }
@@ -248,34 +381,49 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tab Views */}
-        {currentTab === 'board' && (
-          <KanbanBoard
-            issues={issues}
-            fields={fields}
-            onSelectIssue={setSelectedIssue}
-            onChangeIssueStatus={handleChangeIssueStatus}
-          />
-        )}
+        {/* Tab Views with ErrorBoundary Protection */}
+        <ErrorBoundary onReset={() => navigateToTab('board')}>
+          {currentTab === 'board' && (
+            <KanbanBoard
+              issues={issues}
+              fields={fields}
+              onSelectIssue={setSelectedIssue}
+              onChangeIssueStatus={handleChangeIssueStatus}
+              onOpenCreateModal={() => setIsCreateModalOpen(true)}
+            />
+          )}
 
-        {currentTab === 'list' && (
-          <ListView
-            issues={issues}
-            fields={fields}
-            onSelectIssue={setSelectedIssue}
-            onChangeIssueStatus={handleChangeIssueStatus}
-          />
-        )}
+          {currentTab === 'list' && (
+            <ListView
+              issues={issues}
+              fields={fields}
+              onSelectIssue={setSelectedIssue}
+              onChangeIssueStatus={handleChangeIssueStatus}
+            />
+          )}
 
-        {currentTab === 'admin' && (
-          <AdminFieldSettings
-            fields={fields}
-            setFields={setFields}
-            isAdmin={isAdmin}
-            onOpenLoginModal={() => setIsLoginModalOpen(true)}
-          />
-        )}
+          {currentTab === 'admin' && (
+            <AdminFieldSettings
+              fields={fields}
+              setFields={setFields}
+              isAdmin={isAdmin}
+              onOpenLoginModal={() => setIsLoginModalOpen(true)}
+              onBackToBoard={() => navigateToTab('board')}
+            />
+          )}
+        </ErrorBoundary>
       </main>
+
+      {/* Mobile App Bottom Navigation Bar */}
+      {isMobile && (
+        <MobileBottomNav
+          currentTab={currentTab}
+          setCurrentTab={navigateToTab}
+          onOpenCreateModal={() => setIsCreateModalOpen(true)}
+          isAdmin={isAdmin}
+          onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        />
+      )}
 
       {/* Create Issue Modal (핵심 기능: 필수 필드 미입력 시 생성 불가) */}
       <CreateIssueModal
@@ -283,6 +431,7 @@ export default function App() {
         onClose={() => setIsCreateModalOpen(false)}
         fields={fields}
         onCreateIssue={handleCreateIssue}
+        currentUser={currentUser}
       />
 
       {/* Issue Detail Modal */}
@@ -296,8 +445,8 @@ export default function App() {
         />
       )}
 
-      {/* Admin Login Modal (보안 인증 모달) */}
-      <AdminLoginModal
+      {/* Google Login & Admin Authentication Modal */}
+      <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}

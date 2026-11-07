@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Dotori Tools
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import KanbanBoard from './components/KanbanBoard';
@@ -5,7 +21,7 @@ import ListView from './components/ListView';
 import AdminFieldSettings from './components/AdminFieldSettings';
 import CreateIssueModal from './components/CreateIssueModal';
 import IssueDetailModal from './components/IssueDetailModal';
-import AdminLoginModal from './components/AdminLoginModal';
+import LoginModal from './components/LoginModal';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import SideMenuDrawer from './components/SideMenuDrawer';
 import AboutModal from './components/AboutModal';
@@ -14,6 +30,7 @@ import MobileBottomNav from './components/MobileBottomNav';
 import { useIsMobile } from './utils/useIsMobile';
 import { INITIAL_FIELDS, INITIAL_ISSUES } from './constants/initialData';
 import { validateTicketIntegrity } from './utils/security';
+import { getStoredGoogleUser, removeStoredGoogleUser } from './utils/googleAuth';
 import { CheckCircle2, ShieldCheck, AlertTriangle, ArrowLeft } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -58,11 +75,16 @@ export default function App() {
     }
   });
 
-  // 관리자 인증 상태 (세션 기반)
+  // Google 로그인 사용자 상태
+  const [currentUser, setCurrentUser] = useState(() => getStoredGoogleUser());
+
+  // 관리자 인증 상태 (세션 기반 및 Google 관리자 계정 연동)
   const [isAdmin, setIsAdmin] = useState(() => {
     try {
+      const storedUser = getStoredGoogleUser();
+      if (storedUser && storedUser.isAdmin) return true;
       return sessionStorage.getItem(STORAGE_KEY_ADMIN_SESSION) === 'true';
-    } catch (e) {
+    } catch {
       return false;
     }
   });
@@ -179,17 +201,28 @@ export default function App() {
     setTimeout(() => setBannerNotice(null), 4500);
   };
 
-  // 관리자 로그인 처리
-  const handleLoginSuccess = () => {
-    setIsAdmin(true);
-    showNotification('관리자(Admin) 권한으로 성공적으로 인증되었습니다! 이제 모든 필드를 설정할 수 있습니다.');
-    navigateToTab('admin');
+  // 로그인 성공 처리 (Google 로그인 및 관리자 인증)
+  const handleLoginSuccess = (user, isAdminRole) => {
+    if (user) {
+      setCurrentUser(user);
+    }
+    if (isAdminRole) {
+      setIsAdmin(true);
+      sessionStorage.setItem(STORAGE_KEY_ADMIN_SESSION, 'true');
+      showNotification(`인증 완료: ${user?.name ? `${user.name} 님의 ` : ''}관리자 권한이 활성화되었습니다.`);
+      navigateToTab('admin');
+    } else {
+      showNotification(`${user?.name || '사용자'}님, Google 계정으로 로그인되었습니다.`);
+    }
   };
 
-  // 관리자 로그아웃 처리
+  // 로그아웃 처리
   const handleLogout = () => {
     setIsAdmin(false);
-    showNotification('관리자 모드에서 로그아웃되었습니다. (일반 사용자 모드로 전환)');
+    setCurrentUser(null);
+    removeStoredGoogleUser();
+    sessionStorage.removeItem(STORAGE_KEY_ADMIN_SESSION);
+    showNotification('로그아웃되었습니다.');
     if (currentTab === 'admin') {
       navigateToTab('board', true);
     }
@@ -256,6 +289,7 @@ export default function App() {
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
         mandatoryCount={mandatoryFields.length}
         isAdmin={isAdmin}
+        currentUser={currentUser}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
         onOpenChangePasswordModal={() => setIsChangePasswordOpen(true)}
@@ -289,8 +323,8 @@ export default function App() {
         {/* View Header */}
         <div className="view-header">
           <div className="view-title-group">
-            <h1>
-              {currentTab === 'board' && '칸반 보드 (Board)'}
+            <h1 style={currentTab === 'board' ? { fontSize: isMobile ? '1.02rem' : '1.25rem', lineHeight: 1.4, wordBreak: 'keep-all' } : {}}>
+              {currentTab === 'board' && '안정적인 도토리툴즈 앱을 위해 버그 발견시 꼭 우상단 버그 리포트 하기 버튼을 눌러주세요~'}
               {currentTab === 'list' && '이슈 리스트 (All Issues)'}
               {currentTab === 'admin' && '관리자 필드 관리 콘솔'}
             </h1>
@@ -397,6 +431,7 @@ export default function App() {
         onClose={() => setIsCreateModalOpen(false)}
         fields={fields}
         onCreateIssue={handleCreateIssue}
+        currentUser={currentUser}
       />
 
       {/* Issue Detail Modal */}
@@ -410,8 +445,8 @@ export default function App() {
         />
       )}
 
-      {/* Admin Login Modal (보안 인증 모달) */}
-      <AdminLoginModal
+      {/* Google Login & Admin Authentication Modal */}
+      <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}

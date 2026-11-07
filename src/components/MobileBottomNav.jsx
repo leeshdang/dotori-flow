@@ -1,3 +1,19 @@
+/**
+ * Copyright 2026 Dotori Tools
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import React from 'react';
 import { Kanban, ListFilter, Sliders, Plus, Lock } from 'lucide-react';
 
@@ -45,12 +61,12 @@ export default function MobileBottomNav({
         type="button"
         className="mobile-nav-create-btn"
         onClick={onOpenCreateModal}
-        aria-label="새 이슈 등록"
+        aria-label="버그 리포트 등록"
       >
         <div className="create-fab-inner">
           <Plus size={24} strokeWidth={2.5} />
         </div>
-        <span className="mobile-nav-label">새 이슈</span>
+        <span className="mobile-nav-label">버그 리포트</span>
       </button>
 
       <button

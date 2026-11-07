@@ -1,7 +1,23 @@
+/**
+ * Copyright 2026 Dotori Tools
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X, AlertCircle, CheckCircle2, Asterisk } from 'lucide-react';
 
-export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssue }) {
+export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssue, currentUser }) {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
@@ -100,7 +116,7 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
       >
         <div className="modal-header">
           <h2>
-            <span>새 이슈 만들기</span>
+            <span>버그 리포트 하기</span>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 500 }}>
               (필수 항목: {mandatoryFields.length}개)
             </span>
@@ -112,6 +128,30 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div className="modal-body">
+            {/* 리포터 Google 계정 안내 */}
+            {currentUser && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#f1f5f9',
+                padding: '8px 12px',
+                borderRadius: 6,
+                marginBottom: 16,
+                fontSize: '0.82rem',
+                color: '#334155',
+                border: '1px solid #e2e8f0'
+              }}>
+                <img 
+                  src={currentUser.picture} 
+                  alt="" 
+                  style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} 
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+                <span>리포터: <strong>{currentUser.name}</strong> ({currentUser.email})</span>
+              </div>
+            )}
+
             {/* 필수 필드 미입력 시 상단 경고 배너 */}
             {hasAttemptedSubmit && missingFieldNames.length > 0 && (
               <div className="mandatory-summary-alert" ref={firstErrorRef}>
@@ -223,7 +263,7 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
             </button>
             <button type="submit" className="btn-primary">
               <CheckCircle2 size={16} />
-              티켓 생성하기
+              버그 리포트 제출하기
             </button>
           </div>
         </form>
