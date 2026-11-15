@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { ISSUE_STATUSES } from '../constants/initialData';
-import { formatAttachmentSummary } from './attachments';
+import { ISSUE_STATUSES } from '../constants/initialData.js';
+import { formatAttachmentSummary } from './attachments.js';
 
 export function isUserMatched(targetValue, user) {
   if (!targetValue || !user) return false;
