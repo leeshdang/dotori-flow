@@ -18,32 +18,33 @@
 
 export const STORAGE_KEY_GOOGLE_USER = 'dotori_flow_google_user_v1';
 
-// Known admin emails for Dotori Tools
-export const ADMIN_EMAILS = [
-  'leeshdang@gmail.com',
-  'leesh275@gmail.com',
-  'admin@dotoritools.com'
-];
+// Admin emails configured via VITE_ADMIN_EMAILS (comma-separated)
+const ENV_ADMIN_EMAILS = (import.meta.env?.VITE_ADMIN_EMAILS || '')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean);
 
-// Quick Select Google Profiles
+export const ADMIN_EMAILS = ENV_ADMIN_EMAILS;
+
+// Quick Select Demo Profiles (no personal info)
 export const PRESET_GOOGLE_ACCOUNTS = [
   {
-    id: 'google_leeshdang',
-    name: '이승환 (마스터 관리자)',
-    email: 'leeshdang@gmail.com',
-    picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
+    id: 'demo_admin',
+    name: '관리자 (Admin Demo)',
+    email: 'admin@example.com',
+    picture: 'https://api.dicebear.com/7.x/bottts/svg?seed=admin-demo',
     role: 'Admin',
     isAdmin: true,
-    description: '도토리툴즈 공식 마스터 관리자'
+    description: '필드 관리 및 전체 기능 체험용 관리자 프로필'
   },
   {
-    id: 'google_leesh275',
-    name: 'leesh.lee (개발자)',
-    email: 'leesh275@gmail.com',
-    picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face',
-    role: 'Lead Developer',
-    isAdmin: true,
-    description: '도토리툴즈 코어 개발자'
+    id: 'demo_member',
+    name: '일반 사용자 (Member Demo)',
+    email: 'member@example.com',
+    picture: 'https://api.dicebear.com/7.x/bottts/svg?seed=member-demo',
+    role: 'Member',
+    isAdmin: false,
+    description: '버그 리포트 작성 및 일반 협업 체험용 프로필'
   }
 ];
 

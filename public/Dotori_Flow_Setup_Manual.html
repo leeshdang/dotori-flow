@@ -661,6 +661,15 @@ git push -u origin main</code>
             약 30초 후 폭죽 효과와 함께 <strong><code>https://my-dotori-flow-xxxx.vercel.app</code></strong> 형태의 나만의 인터넷 웹사이트 주소가 완성됩니다. 이제 이 주소로 누구에게나 공유할 수 있습니다!
           </div>
         </div>
+
+        <h4>4. 공용 데이터베이스(Upstash Redis) 연결하기 — 팀원·사용자 간 데이터 공유 필수!</h4>
+        <p>DB를 연결하지 않으면 각 사용자의 브라우저(<code>localStorage</code>)에만 데이터가 저장됩니다. 여러 사용자가 올린 티켓을 함께 공유하려면 <strong>본인의 Vercel 프로젝트에 무료 Upstash Redis DB를 연결</strong>해 주세요. (원 제작자의 DB와는 100% 분리되어 있습니다.)</p>
+        <ol class="step-list">
+          <li>본인의 Vercel 프로젝트 대시보드 상단에서 <strong><code>Storage</code></strong> 탭을 클릭하고 <strong><code>Connect Database</code> ➔ <code>Create Database</code></strong>를 누릅니다.</li>
+          <li><strong><code>Upstash for Redis</code></strong> (<strong>Free \$0</strong> 플랜, 아시아 리전 권장)를 선택해 생성한 뒤, 본인 프로젝트에 <strong><code>Connect</code></strong> 합니다. (<code>KV_REST_API_URL</code>, <code>KV_REST_API_TOKEN</code> 환경변수가 자동 등록됩니다.)</li>
+          <li><em>(선택)</em> 특정 Google 계정에 자동 관리자 권한을 주려면 Vercel <strong>Settings ➔ Environment Variables</strong>에 <code>VITE_ADMIN_EMAILS</code>(예: <code>myname@gmail.com</code>)를 추가합니다.</li>
+          <li>환경변수 연결 후 Vercel <strong>Deployments ➔ Redeploy</strong>를 1회 실행하면 즉시 공용 DB로 동작합니다.</li>
+        </ol>
       </div>
     </div>
 

@@ -156,8 +156,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
       const adminUser = {
         id: 'admin_master',
         name: '관리자 (Admin)',
-        email: 'leeshdang@gmail.com',
-        picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
+        email: 'admin@local',
+        picture: 'https://api.dicebear.com/7.x/bottts/svg?seed=admin-master',
         role: 'Master Admin',
         authProvider: 'password',
         isAdmin: true
