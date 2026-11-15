@@ -713,12 +713,16 @@ export default function App() {
         onSuccess={(msg) => showNotification(msg)}
       />
 
-      {/* Side Menu Drawer (패밀리 링크, About, License) */}
+      {/* Side Menu Drawer (패밀리 링크, About, License, 엑셀 백업) */}
       <SideMenuDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onOpenAbout={() => setIsAboutOpen(true)}
         onOpenLicense={() => setIsLicenseOpen(true)}
+        onDownloadBackup={() => {
+          downloadIssuesXls(issues, fields);
+          showNotification('전체 티켓 엑셀(.xls) 백업을 다운로드했습니다.');
+        }}
       />
 
       {/* About Modal */}

@@ -26,7 +26,8 @@ import {
   Heart,
   ShieldCheck,
   BookOpen,
-  Download
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import { APP_VERSION } from '../constants/version';
 
@@ -34,7 +35,8 @@ export default function SideMenuDrawer({
   isOpen, 
   onClose, 
   onOpenAbout, 
-  onOpenLicense 
+  onOpenLicense,
+  onDownloadBackup
 }) {
   if (!isOpen) return null;
 
@@ -184,6 +186,25 @@ export default function SideMenuDrawer({
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>License & Legal Notice</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>오픈소스 라이선스 및 상표권 독립성 고지</div>
+                  </div>
+                </div>
+              </button>
+
+              <button 
+                type="button" 
+                className="drawer-nav-item" 
+                onClick={() => {
+                  onClose();
+                  onDownloadBackup?.();
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="drawer-icon-box" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+                    <FileSpreadsheet size={16} />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>엑셀 백업하기 (.xls)</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>전체 티켓·수정 내역·필드 설정 다운로드</div>
                   </div>
                 </div>
               </button>

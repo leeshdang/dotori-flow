@@ -27,8 +27,7 @@ import {
   KeyRound,
   ArrowLeft,
   Pencil,
-  Download,
-  Mail
+  Download
 } from 'lucide-react';
 import { INITIAL_FIELDS } from '../constants/initialData';
 import { updateAdminPassword } from '../utils/security';
@@ -44,24 +43,6 @@ export default function AdminFieldSettings({
   onBackToBoard
 }) {
   const isMobile = useIsMobile();
-  const [isSendingBackup, setIsSendingBackup] = useState(false);
-
-  const handleSendBackupEmail = async () => {
-    setIsSendingBackup(true);
-    try {
-      const res = await fetch('/api/cron-backup', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        showToast(data.error || '백업 메일 발송에 실패했습니다.');
-        return;
-      }
-      showToast(`${data.to} 로 백업 엑셀(${data.filename}, ${data.issueCount}건)을 발송했습니다.`);
-    } catch {
-      showToast('백업 메일 API 호출 중 오류가 발생했습니다.');
-    } finally {
-      setIsSendingBackup(false);
-    }
-  };
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [editingField, setEditingField] = useState(null);
@@ -401,18 +382,6 @@ export default function AdminFieldSettings({
           >
             <Download size={15} />
             엑셀(.xls) 백업
-          </button>
-
-          <button 
-            type="button"
-            className="btn-secondary" 
-            onClick={handleSendBackupEmail}
-            disabled={isSendingBackup}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
-            title="leeshdang@gmail.com 으로 백업 메일 즉시 발송"
-          >
-            <Mail size={15} />
-            {isSendingBackup ? '메일 발송 중...' : '백업 메일 발송'}
           </button>
 
           <button 
