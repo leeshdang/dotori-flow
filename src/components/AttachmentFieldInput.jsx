@@ -14,15 +14,9 @@
  * limitations under the License.
  */
 
-import React, { useRef, useState } from 'react';
-import { Paperclip, Upload, Link2, ExternalLink, Download, Trash2, AlertTriangle, FileText } from 'lucide-react';
-import {
-  MAX_ATTACHMENT_BYTES,
-  MAX_ATTACHMENT_MB,
-  normalizeAttachments,
-  formatFileSize,
-  readFileAsDataUrl,
-} from '../utils/attachments';
+import React, { useState } from 'react';
+import { Link2, ExternalLink, Trash2, AlertTriangle, HelpCircle } from 'lucide-react';
+import { normalizeAttachments, detectCloudProvider } from '../utils/attachments';
 
 export default function AttachmentFieldInput({
   id,
@@ -32,65 +26,17 @@ export default function AttachmentFieldInput({
   placeholder,
   hasError = false,
 }) {
-  const fileInputRef = useRef(null);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
-  const [limitNotice, setLimitNotice] = useState('');
+  const [errorNotice, setErrorNotice] = useState('');
 
   const items = normalizeAttachments(value);
-
-  const handleFileChange = async (e) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    e.target.value = '';
-    if (selectedFiles.length === 0 || disabled) return;
-
-    const oversized = [];
-    const validFiles = [];
-
-    selectedFiles.forEach(file => {
-      if (file.size > MAX_ATTACHMENT_BYTES) {
-        oversized.push(`${file.name} (${formatFileSize(file.size)})`);
-      } else {
-        validFiles.push(file);
-      }
-    });
-
-    if (oversized.length > 0) {
-      setLimitNotice(
-        `파일 용량 한도(${MAX_ATTACHMENT_MB}MB)를 초과했습니다: ${oversized.join(', ')}. ` +
-        `10MB를 초과하는 파일은 Google Drive, Dropbox, OneDrive 등 외부 저장소에 저장한 후 아래 "외부 링크 연결"란에 URL을 연결해 주세요.`
-      );
-    } else {
-      setLimitNotice('');
-    }
-
-    if (validFiles.length === 0) return;
-
-    try {
-      const newItems = await Promise.all(
-        validFiles.map(async (file) => {
-          const dataUrl = await readFileAsDataUrl(file);
-          return {
-            id: `att_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-            kind: 'file',
-            name: file.name,
-            size: file.size,
-            mimeType: file.type || 'application/octet-stream',
-            dataUrl,
-          };
-        })
-      );
-      onChange([...items, ...newItems]);
-    } catch {
-      setLimitNotice('선택한 파일을 읽는 중 오류가 발생했습니다. 다시 시도해 주세요.');
-    }
-  };
 
   const handleAddLink = () => {
     if (disabled) return;
     const rawUrl = linkUrl.trim();
     if (!rawUrl) {
-      setLimitNotice('연결할 외부 저장소 URL을 입력해 주세요.');
+      setErrorNotice('연결할 Google Drive, OneDrive 또는 Dropbox 공유 링크를 입력해 주세요.');
       return;
     }
 
@@ -98,21 +44,22 @@ export default function AttachmentFieldInput({
     try {
       new URL(normalizedUrl);
     } catch {
-      setLimitNotice('올바른 URL 형식(예: https://drive.google.com/...)을 입력해 주세요.');
+      setErrorNotice('올바른 URL 형식(예: https://drive.google.com/...)을 입력해 주세요.');
       return;
     }
 
+    const provider = detectCloudProvider(normalizedUrl);
     const newLinkItem = {
       id: `lnk_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       kind: 'link',
-      name: linkLabel.trim() || normalizedUrl,
+      name: linkLabel.trim() || `${provider.label} 첨부 파일`,
       url: normalizedUrl,
     };
 
     onChange([...items, newLinkItem]);
     setLinkUrl('');
     setLinkLabel('');
-    setLimitNotice('');
+    setErrorNotice('');
   };
 
   const handleRemoveItem = (itemId) => {
@@ -130,48 +77,39 @@ export default function AttachmentFieldInput({
         backgroundColor: disabled ? '#f4f5f7' : '#fafbfc',
       }}
     >
-      {/* Upload & External Link Controls */}
+      {/* Cloud Link Usage Guide + Input Controls */}
       {!disabled && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: '0.82rem',
-                padding: '7px 12px',
-              }}
-            >
-              <Upload size={14} />
-              파일 선택 (최대 {MAX_ATTACHMENT_MB}MB)
-            </button>
-            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-              {placeholder || `파일당 최대 ${MAX_ATTACHMENT_MB}MB까지 직접 첨부 가능 (초과 시 외부 링크 연결)`}
-            </span>
+          {/* 간략한 사용법 안내 */}
+          <div
+            style={{
+              backgroundColor: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: 6,
+              padding: '9px 11px',
+              fontSize: '0.77rem',
+              color: '#1e3a8a',
+              lineHeight: 1.5,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 700, marginBottom: 4 }}>
+              <HelpCircle size={14} style={{ flexShrink: 0 }} />
+              <span>클라우드 링크 첨부 방법 (Google Drive · OneDrive · Dropbox)</span>
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 18 }}>
+              <li>스크린샷·영상·로그 파일을 <strong>Google Drive, OneDrive, Dropbox</strong> 중 편한 곳에 업로드하세요.</li>
+              <li>파일 우클릭 ➔ <strong>공유(링크 복사)</strong>에서 권한을 <strong>“링크가 있는 모든 사용자(보기 가능)”</strong>로 설정하세요.</li>
+              <li>복사한 URL을 아래 입력란에 붙여넣고 <strong>[링크 추가]</strong>를 누르면 티켓에 연결됩니다.</li>
+            </ol>
           </div>
 
-          {/* External Link Input (for >10MB files or cloud links) */}
+          {/* Link Input Row */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: 'var(--text-sub)', fontWeight: 600 }}>
-              <Link2 size={14} />
-              <span>외부 링크 연결:</span>
-            </div>
             <input
               type="url"
               className="form-input"
-              style={{ flex: '1 1 200px', fontSize: '0.8rem', padding: '6px 10px' }}
-              placeholder="https://drive.google.com/... (10MB 초과 파일 링크)"
+              style={{ flex: '1 1 220px', fontSize: '0.82rem', padding: '7px 10px' }}
+              placeholder={placeholder || 'https://drive.google.com/... 또는 OneDrive / Dropbox 공유 링크'}
               value={linkUrl}
               onChange={e => setLinkUrl(e.target.value)}
               onKeyDown={e => {
@@ -184,8 +122,8 @@ export default function AttachmentFieldInput({
             <input
               type="text"
               className="form-input"
-              style={{ flex: '0 1 150px', fontSize: '0.8rem', padding: '6px 10px' }}
-              placeholder="링크 이름 (선택)"
+              style={{ flex: '0 1 150px', fontSize: '0.82rem', padding: '7px 10px' }}
+              placeholder="링크 설명 (선택)"
               value={linkLabel}
               onChange={e => setLinkLabel(e.target.value)}
               onKeyDown={e => {
@@ -199,42 +137,50 @@ export default function AttachmentFieldInput({
               type="button"
               className="btn btn-secondary"
               onClick={handleAddLink}
-              style={{ fontSize: '0.8rem', padding: '6px 10px', whiteSpace: 'nowrap' }}
+              style={{
+                fontSize: '0.82rem',
+                padding: '7px 12px',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
             >
+              <Link2 size={14} />
               링크 추가
             </button>
           </div>
         </div>
       )}
 
-      {/* 10MB Limit Exceeded / Validation Notice */}
-      {limitNotice && (
+      {/* Validation Notice */}
+      {errorNotice && (
         <div
           role="alert"
           style={{
             marginTop: 10,
-            padding: '10px 12px',
+            padding: '8px 10px',
             borderRadius: 6,
             backgroundColor: '#ffebe6',
             border: '1px solid #ffbdad',
             color: '#bf2600',
-            fontSize: '0.8rem',
-            lineHeight: 1.5,
+            fontSize: '0.79rem',
             display: 'flex',
-            alignItems: 'flex-start',
-            gap: 8,
+            alignItems: 'center',
+            gap: 6,
           }}
         >
-          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-          <div>{limitNotice}</div>
+          <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+          <span>{errorNotice}</span>
         </div>
       )}
 
-      {/* Attached Files & Links List */}
+      {/* Attached Links List */}
       {items.length > 0 ? (
         <div style={{ marginTop: disabled ? 0 : 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {items.map(item => {
-            const isImage = item.kind === 'file' && item.mimeType?.startsWith('image/') && item.dataUrl;
+            const targetUrl = item.url || '';
+            const provider = detectCloudProvider(targetUrl);
             return (
               <div
                 key={item.id}
@@ -243,7 +189,7 @@ export default function AttachmentFieldInput({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: 8,
-                  padding: '6px 10px',
+                  padding: '7px 10px',
                   backgroundColor: '#ffffff',
                   border: '1px solid #dfe1e6',
                   borderRadius: 5,
@@ -251,87 +197,63 @@ export default function AttachmentFieldInput({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                  {isImage ? (
-                    <img
-                      src={item.dataUrl}
-                      alt={item.name}
-                      style={{ width: 30, height: 30, objectFit: 'cover', borderRadius: 4, flexShrink: 0, border: '1px solid #e2e8f0' }}
-                    />
-                  ) : item.kind === 'link' ? (
-                    <Link2 size={15} style={{ color: '#0052cc', flexShrink: 0 }} />
-                  ) : (
-                    <FileText size={15} style={{ color: '#42526e', flexShrink: 0 }} />
-                  )}
-
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    {item.kind === 'link' ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          color: '#0052cc',
-                          fontWeight: 600,
-                          textDecoration: 'underline',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          wordBreak: 'break-all',
-                        }}
-                      >
-                        <span>{item.name || item.url}</span>
-                        <ExternalLink size={12} style={{ flexShrink: 0 }} />
-                      </a>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-main)', wordBreak: 'break-all' }}>
-                          {item.name}
-                        </span>
-                        <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                          ({formatFileSize(item.size)})
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                  {item.kind === 'file' && item.dataUrl && (
+                  <span
+                    style={{
+                      backgroundColor: provider.bg,
+                      color: provider.color,
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: 4,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {provider.label}
+                  </span>
+                  {targetUrl ? (
                     <a
-                      href={item.dataUrl}
-                      download={item.name}
-                      title="파일 다운로드"
+                      href={targetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       style={{
                         color: '#0052cc',
-                        padding: 4,
+                        fontWeight: 600,
+                        textDecoration: 'underline',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        borderRadius: 4,
+                        gap: 4,
+                        minWidth: 0,
+                        wordBreak: 'break-all',
                       }}
                     >
-                      <Download size={14} />
+                      <span>{item.name || targetUrl}</span>
+                      <ExternalLink size={12} style={{ flexShrink: 0 }} />
                     </a>
-                  )}
-                  {!disabled && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItem(item.id)}
-                      title="첨부 삭제"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#de350b',
-                        cursor: 'pointer',
-                        padding: 4,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        borderRadius: 4,
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                  ) : (
+                    <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{item.name}</span>
                   )}
                 </div>
+
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(item.id)}
+                    title="링크 삭제"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#de350b',
+                      cursor: 'pointer',
+                      padding: 4,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      borderRadius: 4,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             );
           })}
@@ -339,8 +261,8 @@ export default function AttachmentFieldInput({
       ) : (
         disabled && (
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Paperclip size={14} />
-            <span>첨부된 파일 또는 외부 링크가 없습니다.</span>
+            <Link2 size={14} />
+            <span>연결된 클라우드 링크가 없습니다.</span>
           </div>
         )
       )}

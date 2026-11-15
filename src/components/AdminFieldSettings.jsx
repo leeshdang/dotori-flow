@@ -521,7 +521,7 @@ export default function AdminFieldSettings({
                       {field.type === 'textarea' ? 'Text Area (여러줄)' : 
                        field.type === 'date' ? 'Date (날짜)' : 
                        field.type === 'number' ? 'Number (숫자)' : 
-                       field.type === 'file' ? 'File (첨부 최대 10MB)' : 'Text (한줄)'}
+                       field.type === 'file' ? 'Link (클라우드 첨부)' : 'Text (한줄)'}
                     </span>
                   )}
                   <span>{field.description || ''}</span>
@@ -643,7 +643,7 @@ export default function AdminFieldSettings({
                           {field.type === 'textarea' ? 'Text Area (여러줄)' : 
                            field.type === 'date' ? 'Date (날짜)' : 
                            field.type === 'number' ? 'Number (숫자)' : 
-                           field.type === 'file' ? 'File (첨부 최대 10MB)' : 'Text (한줄)'}
+                           field.type === 'file' ? 'Link (클라우드 첨부)' : 'Text (한줄)'}
                         </span>
                       )}
                     </td>
@@ -765,7 +765,7 @@ export default function AdminFieldSettings({
                     <option value="select">드롭다운 선택박스 (Dropdown)</option>
                     <option value="date">날짜 (Date Picker)</option>
                     <option value="number">숫자 (Number)</option>
-                    <option value="file">첨부 파일 (최대 10MB + 외부 링크)</option>
+                    <option value="file">첨부 링크 (Google Drive · OneDrive · Dropbox)</option>
                   </select>
                 </div>
 

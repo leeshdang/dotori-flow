@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10MB
-export const MAX_ATTACHMENT_MB = 10;
-
 export function normalizeAttachments(value) {
   if (!value) return [];
   if (Array.isArray(value)) {
@@ -35,27 +32,26 @@ export function hasAttachments(value) {
   return normalizeAttachments(value).length > 0;
 }
 
-export function formatFileSize(bytes) {
-  if (!Number.isFinite(bytes) || bytes < 0) return '0 B';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+export function detectCloudProvider(url) {
+  if (!url) return { label: '외부 링크', bg: '#f1f5f9', color: '#475569' };
+  const lower = String(url).toLowerCase();
+  if (lower.includes('drive.google.com') || lower.includes('docs.google.com')) {
+    return { label: 'Google Drive', bg: '#e8f0fe', color: '#1967d2' };
+  }
+  if (lower.includes('onedrive.live.com') || lower.includes('1drv.ms') || lower.includes('sharepoint.com')) {
+    return { label: 'OneDrive', bg: '#e6f2fb', color: '#0078d4' };
+  }
+  if (lower.includes('dropbox.com') || lower.includes('db.tt')) {
+    return { label: 'Dropbox', bg: '#eaf2ff', color: '#0061ff' };
+  }
+  return { label: '외부 링크', bg: '#f1f5f9', color: '#475569' };
 }
 
 export function formatAttachmentSummary(value) {
   const items = normalizeAttachments(value);
   if (items.length === 0) return '';
   if (items.length === 1) {
-    return items[0].name || items[0].url || '첨부 1건';
+    return items[0].name || items[0].url || '링크 1건';
   }
-  return `${items[0].name || '첨부'} 외 ${items.length - 1}건`;
-}
-
-export function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
-    reader.readAsDataURL(file);
-  });
+  return `${items[0].name || '링크'} 외 ${items.length - 1}건`;
 }
