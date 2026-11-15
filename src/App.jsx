@@ -32,6 +32,7 @@ import { INITIAL_FIELDS, INITIAL_ISSUES } from './constants/initialData';
 import { validateTicketIntegrity } from './utils/security';
 import { getStoredGoogleUser, removeStoredGoogleUser } from './utils/googleAuth';
 import { canUserEditIssue, formatActorLabel, buildIssueChangeLogs } from './utils/issuePermissions';
+import { downloadIssuesXls } from './utils/excelExport';
 import { CheckCircle2, ShieldCheck, AlertTriangle, ArrowLeft } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -221,12 +222,14 @@ export default function App() {
     };
   }, []);
 
-  // 로컬스토리지 자동 저장 (폴백/캐시용)
+  // 로컬스토리지 자동 저장 (클라우드 DB 미연결 시 폴백 전용)
   useEffect(() => {
+    if (isCloudStorageEnabled) return;
     localStorage.setItem(STORAGE_KEY_FIELDS, JSON.stringify(fields));
-  }, [fields]);
+  }, [fields, isCloudStorageEnabled]);
 
   useEffect(() => {
+    if (isCloudStorageEnabled) return;
     try {
       localStorage.setItem(STORAGE_KEY_ISSUES, JSON.stringify(issues));
     } catch {
@@ -235,7 +238,7 @@ export default function App() {
         isError: true,
       });
     }
-  }, [issues]);
+  }, [issues, isCloudStorageEnabled]);
 
   // 관리자 세션 저장
   useEffect(() => {
@@ -652,6 +655,8 @@ export default function App() {
             <AdminFieldSettings
               fields={fields}
               setFields={handleSetFields}
+              issues={issues}
+              onDownloadBackup={() => downloadIssuesXls(issues, fields)}
               isAdmin={isAdmin}
               onOpenLoginModal={() => setIsLoginModalOpen(true)}
               onBackToBoard={() => navigateToTab('board')}
