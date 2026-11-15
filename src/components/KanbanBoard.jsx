@@ -15,6 +15,7 @@
  */
 
 import React, { useState } from 'react';
+import { formatAttachmentSummary } from '../utils/attachments';
 import { 
   Bug, 
   Bookmark, 
@@ -107,11 +108,12 @@ export default function KanbanBoard({
       {customFields.some(cf => issue[cf.id]) && (
         <div className="card-custom-badges">
           {customFields.map(cf => {
-            const val = issue[cf.id];
-            if (!val) return null;
+            const rawVal = issue[cf.id];
+            const displayVal = cf.type === 'file' ? formatAttachmentSummary(rawVal) : rawVal;
+            if (!displayVal) return null;
             return (
-              <span key={cf.id} className="custom-tag" title={`${cf.name}: ${val}`}>
-                <strong>{cf.name}:</strong> {typeof val === 'string' && val.length > 18 ? val.slice(0, 18) + '...' : val}
+              <span key={cf.id} className="custom-tag" title={`${cf.name}: ${displayVal}`}>
+                <strong>{cf.name}:</strong> {typeof displayVal === 'string' && displayVal.length > 18 ? displayVal.slice(0, 18) + '...' : displayVal}
               </span>
             );
           })}

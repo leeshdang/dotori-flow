@@ -15,6 +15,7 @@
  */
 
 import { ISSUE_STATUSES } from '../constants/initialData';
+import { formatAttachmentSummary } from './attachments';
 
 export function isUserMatched(targetValue, user) {
   if (!targetValue || !user) return false;
@@ -70,6 +71,10 @@ function getStatusLabel(statusId) {
 }
 
 function formatDisplayValue(val) {
+  if (Array.isArray(val)) {
+    const summary = formatAttachmentSummary(val);
+    return summary || '(없음)';
+  }
   if (val === undefined || val === null || String(val).trim() === '') {
     return '(없음)';
   }
@@ -101,7 +106,10 @@ export function buildIssueChangeLogs(prevIssue, updatedFields, fields = []) {
     if (!(key in updatedFields)) return;
     const prevVal = prevIssue[key] ?? '';
     const nextVal = updatedFields[key] ?? '';
-    if (String(prevVal) === String(nextVal)) return;
+    const isSame = Array.isArray(prevVal) || Array.isArray(nextVal)
+      ? JSON.stringify(prevVal || []) === JSON.stringify(nextVal || [])
+      : String(prevVal) === String(nextVal);
+    if (isSame) return;
 
     if (key === 'status') {
       const fromLabel = getStatusLabel(prevVal);

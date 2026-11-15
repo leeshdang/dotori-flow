@@ -16,6 +16,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
+import AttachmentFieldInput from './AttachmentFieldInput';
+import { hasAttachments } from '../utils/attachments';
 
 export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssue, currentUser }) {
   const [formData, setFormData] = useState({});
@@ -38,6 +40,8 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
           // 사용자가 명시적으로 선택하게 하려면 빈 문자열로 둘 수도 있음
           // 기본 필드인 경우 첫 번째 옵션 기본 지정 (단, 필수인 경우 미선택 상태를 테스트할 수 있도록 빈 옵션 허용)
           initial[f.id] = f.id === 'issueType' ? f.options[0] : (f.id === 'priority' ? 'Medium' : '');
+        } else if (f.type === 'file') {
+          initial[f.id] = [];
         } else {
           initial[f.id] = '';
         }
@@ -71,8 +75,9 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
 
     mandatoryFields.forEach(field => {
       const val = formData[field.id];
-      const isString = typeof val === 'string';
-      const isEmpty = val === undefined || val === null || (isString && val.trim() === '');
+      const isEmpty = field.type === 'file'
+        ? !hasAttachments(val)
+        : val === undefined || val === null || (typeof val === 'string' && val.trim() === '');
 
       if (isEmpty) {
         newErrors[field.id] = `${field.name}은(는) 필수 입력 항목입니다.`;
@@ -243,6 +248,14 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
                       placeholder={field.placeholder || '숫자 입력'}
                       value={value}
                       onChange={e => handleChange(field.id, e.target.value)}
+                    />
+                  ) : field.type === 'file' ? (
+                    <AttachmentFieldInput
+                      id={`field-${field.id}`}
+                      value={formData[field.id]}
+                      onChange={nextVal => handleChange(field.id, nextVal)}
+                      placeholder={field.placeholder}
+                      hasError={isInvalid}
                     />
                   ) : (
                     <input

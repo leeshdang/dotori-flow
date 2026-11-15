@@ -676,31 +676,31 @@ git push -u origin main</code>
       <div class="step-body">
         <p>배포된 웹사이트에 접속한 후, 보안을 위해 관리자 비밀번호를 바꾸고 우리 팀의 필수 입력 항목을 설정합니다.</p>
 
-        <h4>1. 관리자 권한 로그인</h4>
+        <h4>1. 로그인 및 관리자 권한 인증</h4>
         <ul>
-          <li>화면 오른쪽 상단의 <strong><code>[관리자 로그인 🔒]</code></strong> 버튼을 클릭합니다.</li>
-          <li>초기 기본 비밀번호인 <strong><code>admin1234</code></strong>를 입력하고 엔터를 누릅니다.</li>
-          <li>상단에 초록색 <strong><code>Admin</code></strong> 뱃지가 활성화됩니다.</li>
+          <li>화면 오른쪽 상단의 <strong><code>[로그인 / 관리자]</code></strong> 버튼을 클릭합니다.</li>
+          <li><strong>Google 로그인</strong> 탭에서 Google 계정으로 간편 로그인하거나, <strong>관리자 암호</strong> 탭에서 초기 기본 비밀번호(<strong><code>admin1234</code></strong>)를 입력하고 로그인합니다.</li>
+          <li>로그인 완료 시 상단에 <strong><code>Admin</code></strong> 배지 또는 사용자 프로필이 활성화됩니다.</li>
         </ul>
 
         <h4>2. 즉시 비밀번호 변경하기 (보안 필수!)</h4>
         <ul>
-          <li>우측 상단 <code>Admin</code> 뱃지 바로 옆에 있는 <strong><code>[🔑 비밀번호 변경]</code></strong> 버튼을 누릅니다.</li>
+          <li>우측 상단 <code>Admin</code> 배지 바로 옆에 있는 <strong><code>[🔑 비밀번호 변경]</code></strong> 버튼을 누릅니다.</li>
           <li>나만 아는 새로운 비밀번호(4자리 이상)를 입력하고 확인을 누르면 영구 변경됩니다.</li>
         </ul>
 
-        <h4>3. 필수 입력 항목(Mandatory) 및 커스텀 필드 설정</h4>
+        <h4>3. 필수 입력 항목(Mandatory), 커스텀 필드 및 Select 옵션 설정</h4>
         <ul>
           <li>상단 탭에서 <strong><code>필드 관리 (Admin)</code></strong> 콘솔로 이동합니다.</li>
-          <li><strong>Mandatory 스위치 토글:</strong> 팀원들이 티켓을 만들 때 반드시 입력해야 하는 항목(예: 담당자, 마감일, 설명 등)의 스위치를 켭니다.</li>
-          <li><strong>커스텀 필드 추가:</strong> 우측 상단 <code>+ 커스텀 필드 추가</code> 버튼을 눌러 우리 회사/프로젝트에 필요한 필드(예: <code>배포 버전</code>, <code>고객사명</code>, <code>버그 재현 경로</code> 등)를 자유롭게 추가할 수 있습니다.</li>
+          <li><strong>Mandatory 스위치 토글:</strong> 팀원들이 <code>+ 버그 리포트 하기</code>로 티켓을 만들 때 반드시 입력해야 하는 항목(예: 담당자, 마감일, 설명 등)의 스위치를 켭니다.</li>
+          <li><strong>커스텀 필드 추가 및 옵션 편집:</strong> 우측 상단 <code>+ 커스텀 필드 추가</code> 버튼으로 새 필드를 추가하거나, <code>Select</code> 유형 필드(예: <code>APP 선택</code>)의 편집 버튼을 눌러 선택 항목을 자유롭게 추가·수정·삭제할 수 있습니다.</li>
         </ul>
 
         <div class="alert-box alert-danger">
           <div class="alert-icon">🛡️</div>
           <div>
             <strong>보안 강제 집행 엔진 탑재:</strong><br />
-            관리자가 필수로 지정한 항목은 티켓 생성 폼에서 <strong>빨간 별표(*) 및 필수 배지</strong>로 표시되며, 단 하나라도 빈칸이면 티켓 저장이 원천 차단됩니다.
+            관리자가 필수로 지정한 항목은 버그 리포트 폼에서 <strong>빨간 별표(*) 및 필수 배지</strong>로 표시되며, 단 하나라도 빈칸이면 저장이 원천 차단됩니다.
           </div>
         </div>
       </div>
@@ -731,12 +731,14 @@ git push -u origin main</code>
             <tr>
               <td><strong>일반 사용자 (Member)</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">팀원, 고객, 테스터</span></td>
               <td>
-                • 칸반 보드 열람 및 실시간 상태 이동<br>
-                • 이슈 리스트 검색 및 필터링<br>
-                • 필수 항목을 작성하여 신규 티켓 생성
+                • 칸반 보드 열람 및 이슈 목록 검색·필터링·컬럼별 오름/내림차순 정렬<br>
+                • Google 로그인 후 필수 항목을 작성하여 버그 리포트 생성<br>
+                • <strong>본인이 작성했거나 담당자(Assignee)인 티켓</strong>의 내용·상태 수정<br>
+                • 담당자(Assignee) 변경 및 티켓 하단 수정 내역(Activity History) 확인
               </td>
               <td>
-                • 관리자 암호가 없으므로 필드 필수 여부를 조작하거나 필드를 임의 삭제할 수 없음 (보안 보호)
+                • 타인이 작성·담당 중인 티켓은 먼저 담당자를 본인으로 변경해야 수정 가능<br>
+                • 관리자 권한이 없으므로 필드 필수 여부·옵션·삭제를 조작할 수 없음
               </td>
             </tr>
             <tr>
@@ -744,7 +746,7 @@ git push -u origin main</code>
               <td>
                 • 모든 일반 사용자 기능 포함<br>
                 • <strong>필수 필드(Mandatory) On/Off 제어</strong><br>
-                • <strong>신규 커스텀 필드 생성 및 삭제</strong><br>
+                • <strong>커스텀 필드 생성·삭제 및 Select 옵션 추가·편집</strong><br>
                 • 관리자 비밀번호 변경
               </td>
               <td>

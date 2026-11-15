@@ -19,6 +19,8 @@ import { X, Calendar, User, Trash2, Save, Lock, History, UserCheck } from 'lucid
 import { ISSUE_STATUSES } from '../constants/initialData';
 import { useBackdropClose } from '../utils/useBackdropClose';
 import { canUserEditIssue, formatKoreanDateTime } from '../utils/issuePermissions';
+import AttachmentFieldInput from './AttachmentFieldInput';
+import { normalizeAttachments } from '../utils/attachments';
 
 const CUSTOM_ASSIGNEE_SENTINEL = '__custom_assignee__';
 
@@ -34,7 +36,7 @@ function buildDraft(issue, customFields) {
     description: issue.description || '',
   };
   customFields.forEach(cf => {
-    next[cf.id] = issue[cf.id] ?? '';
+    next[cf.id] = cf.type === 'file' ? normalizeAttachments(issue[cf.id]) : (issue[cf.id] ?? '');
   });
   return next;
 }
@@ -85,7 +87,14 @@ export default function IssueDetailModal({
   const isDirty = useMemo(() => {
     if (!issue) return false;
     const base = buildDraft(issue, customFields);
-    return Object.keys(base).some(key => (draft[key] ?? '') !== (base[key] ?? ''));
+    return Object.keys(base).some(key => {
+      const a = draft[key] ?? '';
+      const b = base[key] ?? '';
+      if (Array.isArray(a) || Array.isArray(b)) {
+        return JSON.stringify(a) !== JSON.stringify(b);
+      }
+      return a !== b;
+    });
   }, [draft, issue, customFields]);
 
   const isAssigneeChanged = useMemo(() => {
@@ -540,6 +549,14 @@ export default function IssueDetailModal({
                             value={value}
                             onChange={e => updateField(cf.id, e.target.value)}
                             placeholder={cf.placeholder || `${cf.name} 입력`}
+                          />
+                        ) : cf.type === 'file' ? (
+                          <AttachmentFieldInput
+                            id={`detail-cf-${cf.id}`}
+                            value={value}
+                            onChange={nextVal => updateField(cf.id, nextVal)}
+                            disabled={!canEditFull}
+                            placeholder={cf.placeholder}
                           />
                         ) : (
                           <input

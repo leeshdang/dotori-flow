@@ -18,6 +18,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Filter, User, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { ISSUE_STATUSES } from '../constants/initialData';
 import { useIsMobile } from '../utils/useIsMobile';
+import { formatAttachmentSummary } from '../utils/attachments';
 
 const PRIORITY_RANK = {
   Highest: 5,
@@ -72,7 +73,11 @@ export default function ListView({
         const statusObj = ISSUE_STATUSES.find(s => s.id === issue.status);
         return statusObj ? statusObj.label : issue.status || '';
       }
-      return issue[key];
+      const val = issue[key];
+      if (Array.isArray(val)) {
+        return formatAttachmentSummary(val);
+      }
+      return val;
     };
 
     return [...filteredIssues].sort((a, b) => {
@@ -223,7 +228,7 @@ export default function ListView({
                 {customFields.some(cf => issue[cf.id]) && (
                   <div className="card-custom-badges" style={{ marginTop: 8, marginBottom: 0 }}>
                     {customFields.map(cf => {
-                      const val = issue[cf.id];
+                      const val = cf.type === 'file' ? formatAttachmentSummary(issue[cf.id]) : issue[cf.id];
                       if (!val) return null;
                       return (
                         <span key={cf.id} className="custom-tag">
@@ -334,17 +339,20 @@ export default function ListView({
                       </span>
                     </td>
                     {/* 동적 커스텀 필드 값 렌더링 */}
-                    {customFields.map(cf => (
-                      <td key={cf.id} style={{ fontSize: '0.82rem', color: 'var(--text-sub)' }}>
-                        {issue[cf.id] ? (
-                          <span style={{ backgroundColor: '#f4f5f7', padding: '2px 6px', borderRadius: 4 }}>
-                            {issue[cf.id]}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#c1c7d0' }}>-</span>
-                        )}
-                      </td>
-                    ))}
+                    {customFields.map(cf => {
+                      const displayVal = cf.type === 'file' ? formatAttachmentSummary(issue[cf.id]) : issue[cf.id];
+                      return (
+                        <td key={cf.id} style={{ fontSize: '0.82rem', color: 'var(--text-sub)' }}>
+                          {displayVal ? (
+                            <span style={{ backgroundColor: '#f4f5f7', padding: '2px 6px', borderRadius: 4 }}>
+                              {displayVal}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#c1c7d0' }}>-</span>
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))
               )}

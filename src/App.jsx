@@ -175,7 +175,14 @@ export default function App() {
   }, [fields]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_ISSUES, JSON.stringify(issues));
+    try {
+      localStorage.setItem(STORAGE_KEY_ISSUES, JSON.stringify(issues));
+    } catch {
+      setBannerNotice({
+        text: '브라우저 로컬 저장소 용량 한도에 도달했습니다. 대용량 첨부파일 대신 외부 저장소 링크를 연결해 주세요.',
+        isError: true,
+      });
+    }
   }, [issues]);
 
   // 관리자 세션 저장
