@@ -86,6 +86,9 @@ export default function App() {
     }
   });
 
+  // 공용 클라우드 DB (Vercel API + Upstash Redis) 연결 상태
+  const [isCloudStorageEnabled, setIsCloudStorageEnabled] = useState(false);
+
   const isMobile = useIsMobile();
   const [currentTab, setCurrentTab] = useState(getTabFromHash);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -169,7 +172,56 @@ export default function App() {
     isLicenseOpen
   ]);
 
-  // 로컬스토리지 자동 저장
+  // 공용 클라우드 DB 동기화 (Vercel /api/fields & /api/issues)
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSharedData = async () => {
+      try {
+        const [fieldsRes, issuesRes] = await Promise.all([
+          fetch('/api/fields', { cache: 'no-store' }),
+          fetch('/api/issues', { cache: 'no-store' }),
+        ]);
+        if (!fieldsRes.ok || !issuesRes.ok) return;
+
+        const [fieldsJson, issuesJson] = await Promise.all([
+          fieldsRes.json(),
+          issuesRes.json(),
+        ]);
+        if (cancelled) return;
+
+        if (fieldsJson?.storageConfigured && issuesJson?.storageConfigured) {
+          setIsCloudStorageEnabled(true);
+          if (Array.isArray(fieldsJson.fields)) {
+            setFields(fieldsJson.fields);
+          }
+          if (Array.isArray(issuesJson.issues)) {
+            setIssues(issuesJson.issues);
+          }
+        }
+      } catch {
+        // 로컬 개발 또는 오프라인 시 localStorage 폴백 유지
+      }
+    };
+
+    loadSharedData();
+
+    const handleFocusRefresh = () => {
+      if (document.visibilityState === 'visible') {
+        loadSharedData();
+      }
+    };
+    window.addEventListener('focus', handleFocusRefresh);
+    document.addEventListener('visibilitychange', handleFocusRefresh);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', handleFocusRefresh);
+      document.removeEventListener('visibilitychange', handleFocusRefresh);
+    };
+  }, []);
+
+  // 로컬스토리지 자동 저장 (폴백/캐시용)
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_FIELDS, JSON.stringify(fields));
   }, [fields]);
@@ -232,8 +284,25 @@ export default function App() {
     }
   };
 
+  // 필드 설정 변경 (공용 DB + 상태 동기화)
+  const handleSetFields = (updater) => {
+    setFields(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (isCloudStorageEnabled) {
+        fetch('/api/fields', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: next }),
+        }).catch(() => {
+          showNotification('공용 DB에 필드 설정 저장 중 오류가 발생했습니다.', true);
+        });
+      }
+      return next;
+    });
+  };
+
   // 티켓 생성 처리 (보안 무결성 검증 레이어 포함)
-  const handleCreateIssue = (formData) => {
+  const handleCreateIssue = async (formData) => {
     // 1. 보안 레이어: 데이터 무결성 검증 (Bypass 시도 원천 차단)
     const integrityCheck = validateTicketIntegrity(formData, fields);
     if (!integrityCheck.isValid) {
@@ -242,7 +311,28 @@ export default function App() {
       return;
     }
 
-    // 2. 신규 키 생성
+    if (isCloudStorageEnabled) {
+      try {
+        const res = await fetch('/api/issues', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ issueData: formData, currentUser }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.issue) {
+          showNotification(data.error || '티켓 저장에 실패했습니다.', true);
+          return;
+        }
+        setIssues(prev => [data.issue, ...prev]);
+        showNotification(`티켓 [${data.issue.id}]이 공용 DB에 저장되었습니다! 필수 입력 항목(${mandatoryFields.length}개)이 모두 충족되었습니다.`);
+        return;
+      } catch {
+        showNotification('서버 연결 오류로 티켓을 저장하지 못했습니다.', true);
+        return;
+      }
+    }
+
+    // 2. 신규 키 생성 (로컬 폴백)
     const nextNum = issues.length > 0
       ? Math.max(...issues.map(i => parseInt(i.id.replace('FLOW-', '')) || 100)) + 1
       : 101;
@@ -273,7 +363,7 @@ export default function App() {
   };
 
   // 이슈 상태 변경
-  const handleChangeIssueStatus = (issueId, newStatus) => {
+  const handleChangeIssueStatus = async (issueId, newStatus) => {
     const targetIssue = issues.find(item => item.id === issueId);
     if (!targetIssue || targetIssue.status === newStatus) return;
 
@@ -283,6 +373,29 @@ export default function App() {
         true
       );
       return;
+    }
+
+    if (isCloudStorageEnabled) {
+      try {
+        const res = await fetch('/api/issues', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: issueId, updates: { status: newStatus }, currentUser }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.issue) {
+          showNotification(data.error || '상태 변경 저장에 실패했습니다.', true);
+          return;
+        }
+        setIssues(prev => prev.map(item => (item.id === issueId ? data.issue : item)));
+        if (selectedIssue && selectedIssue.id === issueId) {
+          setSelectedIssue(data.issue);
+        }
+        return;
+      } catch {
+        showNotification('서버 연결 오류로 상태를 변경하지 못했습니다.', true);
+        return;
+      }
     }
 
     const timestamp = new Date().toISOString();
@@ -310,7 +423,7 @@ export default function App() {
   };
 
   // 이슈 상세 정보 수정
-  const handleUpdateIssue = (issueId, updatedFields) => {
+  const handleUpdateIssue = async (issueId, updatedFields) => {
     const targetIssue = issues.find(item => item.id === issueId);
     if (!targetIssue) return;
 
@@ -326,6 +439,34 @@ export default function App() {
         return;
       }
       allowedUpdates = { assignee: updatedFields.assignee };
+    }
+
+    if (isCloudStorageEnabled) {
+      try {
+        const res = await fetch('/api/issues', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: issueId, updates: allowedUpdates, currentUser }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.issue) {
+          showNotification(data.error || '이슈 수정 저장에 실패했습니다.', true);
+          return;
+        }
+        setIssues(prev => prev.map(item => (item.id === issueId ? data.issue : item)));
+        if (selectedIssue && selectedIssue.id === issueId) {
+          setSelectedIssue(data.issue);
+        }
+        showNotification(
+          hasFullPermission
+            ? `이슈 [${issueId}] 정보가 성공적으로 수정되었습니다.`
+            : `이슈 [${issueId}] 담당자(Assignee)가 변경되었습니다.`
+        );
+        return;
+      } catch {
+        showNotification('서버 연결 오류로 수정 내용을 저장하지 못했습니다.', true);
+        return;
+      }
     }
 
     const changes = buildIssueChangeLogs(targetIssue, allowedUpdates, fields);
@@ -361,8 +502,24 @@ export default function App() {
   };
 
   // 이슈 삭제
-  const handleDeleteIssue = (issueId) => {
+  const handleDeleteIssue = async (issueId) => {
     if (window.confirm(`정말로 이슈 [${issueId}]를 삭제하시겠습니까?`)) {
+      if (isCloudStorageEnabled) {
+        try {
+          const res = await fetch('/api/issues', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: issueId }),
+          });
+          if (!res.ok) {
+            showNotification('서버에서 이슈 삭제에 실패했습니다.', true);
+            return;
+          }
+        } catch {
+          showNotification('서버 연결 오류로 이슈를 삭제하지 못했습니다.', true);
+          return;
+        }
+      }
       setIssues(prev => prev.filter(i => i.id !== issueId));
       setSelectedIssue(null);
       showNotification(`이슈 [${issueId}]가 삭제되었습니다.`);
@@ -494,7 +651,7 @@ export default function App() {
           {currentTab === 'admin' && (
             <AdminFieldSettings
               fields={fields}
-              setFields={setFields}
+              setFields={handleSetFields}
               isAdmin={isAdmin}
               onOpenLoginModal={() => setIsLoginModalOpen(true)}
               onBackToBoard={() => navigateToTab('board')}
