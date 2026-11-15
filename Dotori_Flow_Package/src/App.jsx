@@ -31,6 +31,7 @@ import { useIsMobile } from './utils/useIsMobile';
 import { INITIAL_FIELDS, INITIAL_ISSUES } from './constants/initialData';
 import { validateTicketIntegrity } from './utils/security';
 import { getStoredGoogleUser, removeStoredGoogleUser } from './utils/googleAuth';
+import { canUserEditIssue, formatActorLabel, buildIssueChangeLogs } from './utils/issuePermissions';
 import { CheckCircle2, ShieldCheck, AlertTriangle, ArrowLeft } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -244,10 +245,21 @@ export default function App() {
       : 101;
     const newId = `FLOW-${nextNum}`;
 
+    const createdTimestamp = new Date().toISOString();
     const newIssue = {
       id: newId,
       status: 'todo',
-      createdAt: new Date().toISOString(),
+      createdAt: createdTimestamp,
+      reporter: currentUser?.name || '익명 사용자',
+      reporterEmail: currentUser?.email || '',
+      history: [
+        {
+          id: `log_${Date.now()}`,
+          timestamp: createdTimestamp,
+          actor: formatActorLabel(currentUser),
+          changes: [{ summaryText: '이슈를 최초 생성했습니다.' }],
+        },
+      ],
       ...formData
     };
 
@@ -259,33 +271,90 @@ export default function App() {
 
   // 이슈 상태 변경
   const handleChangeIssueStatus = (issueId, newStatus) => {
+    const targetIssue = issues.find(item => item.id === issueId);
+    if (!targetIssue || targetIssue.status === newStatus) return;
+
+    if (!canUserEditIssue(targetIssue, currentUser)) {
+      showNotification(
+        '티켓 수정 권한이 없습니다. 최초 작성자 또는 담당자(Assignee)만 수정할 수 있습니다. 먼저 담당자를 본인으로 변경해 주세요.',
+        true
+      );
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+    const changes = buildIssueChangeLogs(targetIssue, { status: newStatus }, fields);
+    const nextHistory = [
+      ...(Array.isArray(targetIssue.history) ? targetIssue.history : []),
+      {
+        id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        timestamp,
+        actor: formatActorLabel(currentUser),
+        changes,
+      },
+    ];
+
     setIssues(prev => prev.map(item => {
       if (item.id === issueId) {
-        return { ...item, status: newStatus };
+        return { ...item, status: newStatus, updatedAt: timestamp, history: nextHistory };
       }
       return item;
     }));
 
     if (selectedIssue && selectedIssue.id === issueId) {
-      setSelectedIssue(prev => ({ ...prev, status: newStatus }));
+      setSelectedIssue(prev => ({ ...prev, status: newStatus, updatedAt: timestamp, history: nextHistory }));
     }
   };
 
   // 이슈 상세 정보 수정
   const handleUpdateIssue = (issueId, updatedFields) => {
+    const targetIssue = issues.find(item => item.id === issueId);
+    if (!targetIssue) return;
+
+    const hasFullPermission = canUserEditIssue(targetIssue, currentUser);
+    let allowedUpdates = updatedFields;
+
+    if (!hasFullPermission) {
+      if (!('assignee' in updatedFields) || updatedFields.assignee === targetIssue.assignee) {
+        showNotification(
+          '티켓 수정 권한이 없습니다. 먼저 담당자(Assignee)를 본인으로 변경한 후 다른 내용을 수정해 주세요.',
+          true
+        );
+        return;
+      }
+      allowedUpdates = { assignee: updatedFields.assignee };
+    }
+
+    const changes = buildIssueChangeLogs(targetIssue, allowedUpdates, fields);
+    if (changes.length === 0) return;
+
     const timestamp = new Date().toISOString();
+    const nextHistory = [
+      ...(Array.isArray(targetIssue.history) ? targetIssue.history : []),
+      {
+        id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        timestamp,
+        actor: formatActorLabel(currentUser),
+        changes,
+      },
+    ];
+
     setIssues(prev => prev.map(item => {
       if (item.id === issueId) {
-        return { ...item, ...updatedFields, updatedAt: timestamp };
+        return { ...item, ...allowedUpdates, updatedAt: timestamp, history: nextHistory };
       }
       return item;
     }));
 
     if (selectedIssue && selectedIssue.id === issueId) {
-      setSelectedIssue(prev => ({ ...prev, ...updatedFields, updatedAt: timestamp }));
+      setSelectedIssue(prev => ({ ...prev, ...allowedUpdates, updatedAt: timestamp, history: nextHistory }));
     }
 
-    showNotification(`이슈 [${issueId}] 정보가 성공적으로 수정되었습니다.`);
+    showNotification(
+      hasFullPermission
+        ? `이슈 [${issueId}] 정보가 성공적으로 수정되었습니다.`
+        : `이슈 [${issueId}] 담당자(Assignee)가 변경되었습니다.`
+    );
   };
 
   // 이슈 삭제
@@ -456,6 +525,8 @@ export default function App() {
         <IssueDetailModal
           issue={selectedIssue}
           fields={fields}
+          currentUser={currentUser}
+          onOpenLoginModal={() => setIsLoginModalOpen(true)}
           onClose={() => setSelectedIssue(null)}
           onChangeIssueStatus={handleChangeIssueStatus}
           onUpdateIssue={handleUpdateIssue}

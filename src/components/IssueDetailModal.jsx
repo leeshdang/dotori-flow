@@ -15,9 +15,10 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, User, Trash2, Save } from 'lucide-react';
+import { X, Calendar, User, Trash2, Save, Lock, History, UserCheck } from 'lucide-react';
 import { ISSUE_STATUSES } from '../constants/initialData';
 import { useBackdropClose } from '../utils/useBackdropClose';
+import { canUserEditIssue, formatKoreanDateTime } from '../utils/issuePermissions';
 
 const CUSTOM_ASSIGNEE_SENTINEL = '__custom_assignee__';
 
@@ -41,6 +42,8 @@ function buildDraft(issue, customFields) {
 export default function IssueDetailModal({
   issue,
   fields,
+  currentUser,
+  onOpenLoginModal,
   onClose,
   onChangeIssueStatus,
   onUpdateIssue,
@@ -74,11 +77,21 @@ export default function IssueDetailModal({
     setErrorMsg('');
   }, [issue, customFields, assigneeOptions]);
 
+  const canEditFull = useMemo(
+    () => canUserEditIssue(issue, currentUser),
+    [issue, currentUser]
+  );
+
   const isDirty = useMemo(() => {
     if (!issue) return false;
     const base = buildDraft(issue, customFields);
     return Object.keys(base).some(key => (draft[key] ?? '') !== (base[key] ?? ''));
   }, [draft, issue, customFields]);
+
+  const isAssigneeChanged = useMemo(() => {
+    if (!issue) return false;
+    return (draft.assignee || '미지정') !== (issue.assignee || '미지정');
+  }, [draft.assignee, issue]);
 
   const handleRequestClose = () => {
     if (isDirty) {
@@ -97,8 +110,33 @@ export default function IssueDetailModal({
     if (errorMsg) setErrorMsg('');
   };
 
+  const handleAssignToMe = () => {
+    if (!currentUser) {
+      if (onOpenLoginModal) onOpenLoginModal();
+      return;
+    }
+    const myAssigneeName = currentUser.email
+      ? currentUser.email.split('@')[0]
+      : currentUser.name;
+    if (!myAssigneeName) return;
+
+    if (onUpdateIssue) {
+      onUpdateIssue(issue.id, { assignee: myAssigneeName });
+    }
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
+
+    if (!canEditFull) {
+      if (!isAssigneeChanged) return;
+      const nextAssignee = String(draft.assignee || '').trim() || '미지정';
+      if (onUpdateIssue) {
+        onUpdateIssue(issue.id, { assignee: nextAssignee });
+      }
+      return;
+    }
+
     if (!String(draft.summary || '').trim()) {
       setErrorMsg('요약 (Summary)은 비워둘 수 없습니다.');
       return;
@@ -129,15 +167,22 @@ export default function IssueDetailModal({
     return list;
   };
 
+  const historyList = Array.isArray(issue.history) ? [...issue.history].reverse() : [];
+  const reporterLabel = issue.reporter
+    ? (issue.reporterEmail ? `${issue.reporter} (${issue.reporterEmail})` : issue.reporter)
+    : '미기록 (기존 이슈)';
+
+  const canSubmit = canEditFull ? isDirty : isAssigneeChanged;
+
   return (
     <div className="modal-overlay" {...backdropProps}>
       <div
         className="modal-container"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 740 }}
+        style={{ maxWidth: 760 }}
       >
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{
               fontFamily: 'monospace',
               fontSize: '0.9rem',
@@ -152,7 +197,15 @@ export default function IssueDetailModal({
             <select
               className="form-select"
               aria-label="이슈 유형"
-              style={{ height: 30, fontSize: '0.82rem', padding: '0 24px 0 8px', width: 'auto' }}
+              disabled={!canEditFull}
+              style={{
+                height: 30,
+                fontSize: '0.82rem',
+                padding: '0 24px 0 8px',
+                width: 'auto',
+                opacity: canEditFull ? 1 : 0.7,
+                cursor: canEditFull ? 'pointer' : 'not-allowed',
+              }}
               value={draft.issueType || 'Bug'}
               onChange={e => updateField('issueType', e.target.value)}
             >
@@ -160,6 +213,9 @@ export default function IssueDetailModal({
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-sub)' }}>
+              최초 작성자: <strong>{reporterLabel}</strong>
+            </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -180,6 +236,75 @@ export default function IssueDetailModal({
 
         <form onSubmit={handleSave}>
           <div className="modal-body">
+            {!canEditFull && (
+              <div style={{
+                marginBottom: 14,
+                padding: '10px 14px',
+                borderRadius: 6,
+                backgroundColor: '#fffbeb',
+                border: '1px solid #fcd34d',
+                color: '#92400e',
+                fontSize: '0.83rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <Lock size={16} style={{ flexShrink: 0 }} />
+                  <span>
+                    {currentUser
+                      ? `이슈 수정 권한: 최초 작성자 또는 현재 담당자(${issue.assignee || '미지정'})만 내용을 수정할 수 있습니다. 수정하려면 먼저 담당자(Assignee)를 본인으로 변경해 주세요.`
+                      : '이슈 수정 권한: 비로그인 상태입니다. 담당자(Assignee) 변경만 가능하며, 내용을 수정하려면 로그인 후 담당자로 지정되어야 합니다.'}
+                  </span>
+                </div>
+                {currentUser ? (
+                  <button
+                    type="button"
+                    onClick={handleAssignToMe}
+                    style={{
+                      backgroundColor: '#0052cc',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 5,
+                      padding: '6px 10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <UserCheck size={14} />
+                    <span>나를 담당자로 지정</span>
+                  </button>
+                ) : (
+                  onOpenLoginModal && (
+                    <button
+                      type="button"
+                      onClick={onOpenLoginModal}
+                      style={{
+                        backgroundColor: '#0052cc',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 5,
+                        padding: '6px 10px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      로그인하기
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+
             {errorMsg && (
               <div style={{
                 marginBottom: 12,
@@ -206,7 +331,13 @@ export default function IssueDetailModal({
                 id="detail-summary-input"
                 type="text"
                 className="form-input"
-                style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}
+                disabled={!canEditFull}
+                style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
+                  backgroundColor: canEditFull ? '#ffffff' : '#f4f5f7',
+                }}
                 value={draft.summary || ''}
                 onChange={e => updateField('summary', e.target.value)}
                 placeholder="이슈 제목을 입력하세요"
@@ -228,7 +359,8 @@ export default function IssueDetailModal({
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600, marginBottom: 4 }}>상태 (Status)</div>
                 <select
                   className="form-select"
-                  style={{ height: 34, fontSize: '0.84rem', padding: '0 24px 0 8px' }}
+                  disabled={!canEditFull}
+                  style={{ height: 34, fontSize: '0.84rem', padding: '0 24px 0 8px', opacity: canEditFull ? 1 : 0.7 }}
                   value={draft.status || ISSUE_STATUSES[0].id}
                   onChange={e => updateField('status', e.target.value)}
                 >
@@ -242,7 +374,8 @@ export default function IssueDetailModal({
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600, marginBottom: 4 }}>우선순위 (Priority)</div>
                 <select
                   className="form-select"
-                  style={{ height: 34, fontSize: '0.84rem', padding: '0 24px 0 8px' }}
+                  disabled={!canEditFull}
+                  style={{ height: 34, fontSize: '0.84rem', padding: '0 24px 0 8px', opacity: canEditFull ? 1 : 0.7 }}
                   value={draft.priority || 'Medium'}
                   onChange={e => updateField('priority', e.target.value)}
                 >
@@ -300,7 +433,8 @@ export default function IssueDetailModal({
                 <input
                   type="date"
                   className="form-input"
-                  style={{ height: 34, fontSize: '0.82rem', padding: '0 8px' }}
+                  disabled={!canEditFull}
+                  style={{ height: 34, fontSize: '0.82rem', padding: '0 8px', opacity: canEditFull ? 1 : 0.7 }}
                   value={draft.dueDate || ''}
                   onChange={e => updateField('dueDate', e.target.value)}
                 />
@@ -319,7 +453,12 @@ export default function IssueDetailModal({
                 id="detail-description-input"
                 className="form-textarea"
                 rows={4}
-                style={{ lineHeight: 1.6, fontSize: '0.9rem' }}
+                disabled={!canEditFull}
+                style={{
+                  lineHeight: 1.6,
+                  fontSize: '0.9rem',
+                  backgroundColor: canEditFull ? '#ffffff' : '#f4f5f7',
+                }}
                 value={draft.description || ''}
                 onChange={e => updateField('description', e.target.value)}
                 placeholder="상세한 이슈 내용 및 배경을 입력해주세요"
@@ -328,7 +467,7 @@ export default function IssueDetailModal({
 
             {/* Custom Fields Section */}
             {customFields.length > 0 && (
-              <div>
+              <div style={{ marginBottom: 24 }}>
                 <h4 style={{ fontSize: '0.85rem', color: 'var(--text-sub)', textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.04em' }}>
                   커스텀 필드 정보 (Custom Fields)
                 </h4>
@@ -361,6 +500,8 @@ export default function IssueDetailModal({
                             id={`detail-cf-${cf.id}`}
                             className="form-textarea"
                             rows={3}
+                            disabled={!canEditFull}
+                            style={{ backgroundColor: canEditFull ? '#ffffff' : '#f4f5f7' }}
                             value={value}
                             onChange={e => updateField(cf.id, e.target.value)}
                             placeholder={cf.placeholder || `${cf.name} 입력`}
@@ -369,6 +510,8 @@ export default function IssueDetailModal({
                           <select
                             id={`detail-cf-${cf.id}`}
                             className="form-select"
+                            disabled={!canEditFull}
+                            style={{ opacity: canEditFull ? 1 : 0.7 }}
                             value={value}
                             onChange={e => updateField(cf.id, e.target.value)}
                           >
@@ -382,6 +525,8 @@ export default function IssueDetailModal({
                             id={`detail-cf-${cf.id}`}
                             type="date"
                             className="form-input"
+                            disabled={!canEditFull}
+                            style={{ backgroundColor: canEditFull ? '#ffffff' : '#f4f5f7' }}
                             value={value}
                             onChange={e => updateField(cf.id, e.target.value)}
                           />
@@ -390,6 +535,8 @@ export default function IssueDetailModal({
                             id={`detail-cf-${cf.id}`}
                             type="number"
                             className="form-input"
+                            disabled={!canEditFull}
+                            style={{ backgroundColor: canEditFull ? '#ffffff' : '#f4f5f7' }}
                             value={value}
                             onChange={e => updateField(cf.id, e.target.value)}
                             placeholder={cf.placeholder || `${cf.name} 입력`}
@@ -399,6 +546,8 @@ export default function IssueDetailModal({
                             id={`detail-cf-${cf.id}`}
                             type="text"
                             className="form-input"
+                            disabled={!canEditFull}
+                            style={{ backgroundColor: canEditFull ? '#ffffff' : '#f4f5f7' }}
                             value={value}
                             onChange={e => updateField(cf.id, e.target.value)}
                             placeholder={cf.placeholder || `${cf.name} 입력`}
@@ -410,6 +559,67 @@ export default function IssueDetailModal({
                 </div>
               </div>
             )}
+
+            {/* Activity / Modification History Log */}
+            <div style={{ borderTop: '1px solid #dfe1e6', paddingTop: 18 }}>
+              <h4 style={{
+                fontSize: '0.85rem',
+                color: 'var(--text-sub)',
+                textTransform: 'uppercase',
+                marginBottom: 12,
+                letterSpacing: '0.04em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}>
+                <History size={15} />
+                <span>수정 내역 로그 (Activity History · {historyList.length}건)</span>
+              </h4>
+
+              {historyList.length === 0 ? (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 6,
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.83rem',
+                }}>
+                  아직 기록된 수정 내역이 없습니다.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 220, overflowY: 'auto' }}>
+                  {historyList.map(entry => (
+                    <div key={entry.id} style={{
+                      padding: '10px 12px',
+                      borderRadius: 6,
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '0.82rem',
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 8,
+                        marginBottom: 4,
+                        flexWrap: 'wrap',
+                      }}>
+                        <strong style={{ color: 'var(--text-main)' }}>{entry.actor}</strong>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontFamily: 'monospace' }}>
+                          {formatKoreanDateTime(entry.timestamp)}
+                        </span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-main)', lineHeight: 1.5 }}>
+                        {(entry.changes || []).map((c, idx) => (
+                          <li key={idx}>{c.summaryText}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="modal-footer">
@@ -419,11 +629,11 @@ export default function IssueDetailModal({
             <button
               type="submit"
               className="btn-primary"
-              disabled={!isDirty}
-              style={!isDirty ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+              disabled={!canSubmit}
+              style={!canSubmit ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
             >
               <Save size={16} />
-              <span>변경사항 저장</span>
+              <span>{canEditFull ? '변경사항 저장' : '담당자 변경 저장'}</span>
             </button>
           </div>
         </form>
