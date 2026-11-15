@@ -14,10 +14,18 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
-import { Search, Filter, Bug, Bookmark, CheckSquare, TrendingUp, Calendar, User, Tag, ChevronRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Filter, User, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { ISSUE_STATUSES } from '../constants/initialData';
 import { useIsMobile } from '../utils/useIsMobile';
+
+const PRIORITY_RANK = {
+  Highest: 5,
+  High: 4,
+  Medium: 3,
+  Low: 2,
+  Lowest: 1,
+};
 
 export default function ListView({ 
   issues, 
@@ -28,8 +36,18 @@ export default function ListView({
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
 
   const customFields = fields.filter(f => !f.isSystem && f.isEnabled);
+
+  const handleSort = (key) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'desc' ? 'asc' : 'desc' };
+      }
+      return { key, direction: 'desc' };
+    });
+  };
 
   // 필터링
   const filteredIssues = issues.filter(issue => {
@@ -41,6 +59,64 @@ export default function ListView({
     const matchesStatus = statusFilter === 'all' || issue.status === statusFilter;
 
     return matchesSearch && matchesStatus;
+  });
+
+  // 정렬
+  const sortedIssues = useMemo(() => {
+    if (!sortConfig.key) return filteredIssues;
+    const { key, direction } = sortConfig;
+    const factor = direction === 'desc' ? -1 : 1;
+
+    const getComparableValue = (issue) => {
+      if (key === 'status') {
+        const statusObj = ISSUE_STATUSES.find(s => s.id === issue.status);
+        return statusObj ? statusObj.label : issue.status || '';
+      }
+      return issue[key];
+    };
+
+    return [...filteredIssues].sort((a, b) => {
+      const valA = getComparableValue(a);
+      const valB = getComparableValue(b);
+
+      const isEmptyA = valA === undefined || valA === null || String(valA).trim() === '';
+      const isEmptyB = valB === undefined || valB === null || String(valB).trim() === '';
+      if (isEmptyA && isEmptyB) return 0;
+      if (isEmptyA) return 1;
+      if (isEmptyB) return -1;
+
+      if (key === 'priority') {
+        const rankA = PRIORITY_RANK[valA] ?? 0;
+        const rankB = PRIORITY_RANK[valB] ?? 0;
+        if (rankA !== rankB) return (rankA - rankB) * factor;
+      }
+
+      return String(valA).localeCompare(String(valB), 'ko', {
+        numeric: true,
+        sensitivity: 'base'
+      }) * factor;
+    });
+  }, [filteredIssues, sortConfig]);
+
+  const renderSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ArrowUpDown size={13} style={{ opacity: 0.35, flexShrink: 0 }} />;
+    }
+    return sortConfig.direction === 'desc'
+      ? <ArrowDown size={13} style={{ color: 'var(--theme-primary)', flexShrink: 0 }} />
+      : <ArrowUp size={13} style={{ color: 'var(--theme-primary)', flexShrink: 0 }} />;
+  };
+
+  const getSortableThProps = (key, extraStyle = {}) => ({
+    onClick: () => handleSort(key),
+    style: {
+      cursor: 'pointer',
+      userSelect: 'none',
+      ...extraStyle
+    },
+    title: sortConfig.key === key && sortConfig.direction === 'desc'
+      ? '클릭하여 오름차순 정렬'
+      : '클릭하여 내림차순 정렬'
   });
 
   const getStatusBadge = (statusId) => {
@@ -101,7 +177,7 @@ export default function ListView({
       {/* MOBILE APP LAYOUT: Touch-Friendly Card List */}
       {isMobile ? (
         <div className="mobile-list-cards">
-          {filteredIssues.length === 0 ? (
+          {sortedIssues.length === 0 ? (
             <div className="mobile-empty-state">
               <div style={{ fontSize: '1.8rem', marginBottom: 8 }}>🔍</div>
               <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: 4 }}>
@@ -112,7 +188,7 @@ export default function ListView({
               </p>
             </div>
           ) : (
-            filteredIssues.map(issue => (
+            sortedIssues.map(issue => (
               <div
                 key={issue.id}
                 className="mobile-list-item-card"
@@ -167,30 +243,59 @@ export default function ListView({
           <table className="settings-table">
             <thead>
               <tr>
-                <th style={{ width: '110px' }}>키 (Key)</th>
-                <th style={{ minWidth: '240px' }}>요약 (Summary)</th>
-                <th style={{ width: '120px' }}>상태</th>
-                <th style={{ width: '100px' }}>유형</th>
-                <th style={{ width: '100px' }}>우선순위</th>
-                <th style={{ width: '130px' }}>담당자</th>
+                <th {...getSortableThProps('id', { width: '110px' })}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    키 (Key) {renderSortIcon('id')}
+                  </span>
+                </th>
+                <th {...getSortableThProps('summary', { minWidth: '240px' })}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    요약 (Summary) {renderSortIcon('summary')}
+                  </span>
+                </th>
+                <th {...getSortableThProps('status', { width: '120px' })}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    상태 {renderSortIcon('status')}
+                  </span>
+                </th>
+                <th {...getSortableThProps('issueType', { width: '100px' })}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    유형 {renderSortIcon('issueType')}
+                  </span>
+                </th>
+                <th {...getSortableThProps('priority', { width: '100px' })}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    우선순위 {renderSortIcon('priority')}
+                  </span>
+                </th>
+                <th {...getSortableThProps('assignee', { width: '130px' })}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    담당자 {renderSortIcon('assignee')}
+                  </span>
+                </th>
                 {/* 동적 커스텀 필드 컬럼들 */}
                 {customFields.map(cf => (
-                  <th key={cf.id} style={{ minWidth: '140px' }}>
-                    {cf.name}
-                    {cf.isMandatory && <span style={{ color: 'var(--color-danger)' }}> *</span>}
+                  <th key={cf.id} {...getSortableThProps(cf.id, { minWidth: '140px' })}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span>
+                        {cf.name}
+                        {cf.isMandatory && <span style={{ color: 'var(--color-danger)' }}> *</span>}
+                      </span>
+                      {renderSortIcon(cf.id)}
+                    </span>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filteredIssues.length === 0 ? (
+              {sortedIssues.length === 0 ? (
                 <tr>
                   <td colSpan={6 + customFields.length} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                     조건에 일치하는 이슈가 없습니다.
                   </td>
                 </tr>
               ) : (
-                filteredIssues.map(issue => (
+                sortedIssues.map(issue => (
                   <tr 
                     key={issue.id} 
                     onClick={() => onSelectIssue(issue)}
