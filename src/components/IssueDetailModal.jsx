@@ -17,6 +17,7 @@
 import React from 'react';
 import { X, Calendar, User, Tag, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import { ISSUE_STATUSES } from '../constants/initialData';
+import { useBackdropClose } from '../utils/useBackdropClose';
 
 export default function IssueDetailModal({ 
   issue, 
@@ -25,13 +26,14 @@ export default function IssueDetailModal({
   onChangeIssueStatus,
   onDeleteIssue
 }) {
+  const backdropProps = useBackdropClose(onClose);
   if (!issue) return null;
 
   const currentStatusObj = ISSUE_STATUSES.find(s => s.id === issue.status) || ISSUE_STATUSES[0];
   const customFields = fields.filter(f => !f.isSystem && f.isEnabled);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...backdropProps}>
       <div 
         className="modal-container" 
         onClick={e => e.stopPropagation()} 

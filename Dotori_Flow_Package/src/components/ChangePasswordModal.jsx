@@ -17,8 +17,10 @@
 import React, { useState } from 'react';
 import { KeyRound, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { updateAdminPassword } from '../utils/security';
+import { useBackdropClose } from '../utils/useBackdropClose';
 
 export default function ChangePasswordModal({ isOpen, onClose, onSuccess }) {
+  const backdropProps = useBackdropClose(onClose);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -49,7 +51,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSuccess }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...backdropProps}>
       <div 
         className="modal-container" 
         onClick={e => e.stopPropagation()} 

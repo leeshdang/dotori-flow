@@ -31,6 +31,7 @@ import {
   decodeJwtResponse, 
   checkIsAdminEmail 
 } from '../utils/googleAuth';
+import { useBackdropClose } from '../utils/useBackdropClose';
 
 // Google 4-color SVG Icon
 export function GoogleIcon({ size = 20 }) {
@@ -45,6 +46,7 @@ export function GoogleIcon({ size = 20 }) {
 }
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
+  const backdropProps = useBackdropClose(onClose);
   const [activeTab, setActiveTab] = useState('google'); // 'google' | 'password'
   
   // Custom Google sign in inputs
@@ -171,7 +173,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...backdropProps}>
       <div 
         className="modal-container" 
         onClick={e => e.stopPropagation()} 

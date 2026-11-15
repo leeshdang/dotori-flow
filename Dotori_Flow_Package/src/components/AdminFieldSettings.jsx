@@ -30,6 +30,7 @@ import {
 import { INITIAL_FIELDS } from '../constants/initialData';
 import { updateAdminPassword } from '../utils/security';
 import { useIsMobile } from '../utils/useIsMobile';
+import { useBackdropClose } from '../utils/useBackdropClose';
 
 export default function AdminFieldSettings({ 
   fields, 
@@ -41,6 +42,8 @@ export default function AdminFieldSettings({
   const isMobile = useIsMobile();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const addModalBackdropProps = useBackdropClose(() => setShowAddModal(false));
+  const passwordModalBackdropProps = useBackdropClose(() => setShowPasswordModal(false));
   const [newPassword, setNewPassword] = useState('');
   const [passwordStatusMsg, setPasswordStatusMsg] = useState(null);
 
@@ -544,7 +547,7 @@ export default function AdminFieldSettings({
 
       {/* Add Custom Field Modal */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+        <div className="modal-overlay" {...addModalBackdropProps}>
           <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
             <div className="modal-header">
               <h2>
@@ -670,7 +673,7 @@ export default function AdminFieldSettings({
 
       {/* Change Password Modal */}
       {showPasswordModal && (
-        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+        <div className="modal-overlay" {...passwordModalBackdropProps}>
           <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
             <div className="modal-header">
               <h2>

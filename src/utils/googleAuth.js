@@ -115,3 +115,4 @@ export function saveStoredGoogleUser(user) {
 export function removeStoredGoogleUser() {
   localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
 }
+

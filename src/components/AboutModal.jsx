@@ -17,12 +17,14 @@
 import React from 'react';
 import { X, Layers, CheckCircle2, ShieldCheck, Sparkles, Sliders } from 'lucide-react';
 import { APP_VERSION } from '../constants/version';
+import { useBackdropClose } from '../utils/useBackdropClose';
 
 export default function AboutModal({ isOpen, onClose }) {
+  const backdropProps = useBackdropClose(onClose);
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...backdropProps}>
       <div 
         className="modal-container" 
         onClick={e => e.stopPropagation()} 

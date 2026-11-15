@@ -16,12 +16,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, AlertCircle, CheckCircle2, Asterisk } from 'lucide-react';
+import { useBackdropClose } from '../utils/useBackdropClose';
 
 export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssue, currentUser }) {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const firstErrorRef = useRef(null);
+  const backdropProps = useBackdropClose(onClose);
 
   // 활성화된 필드만 추출
   const activeFields = fields.filter(f => f.isEnabled);
@@ -107,7 +109,7 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
     .map(f => f.name);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...backdropProps}>
       <div 
         className="modal-container" 
         onClick={e => e.stopPropagation()}
