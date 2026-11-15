@@ -271,6 +271,23 @@ export default function App() {
     }
   };
 
+  // 이슈 상세 정보 수정
+  const handleUpdateIssue = (issueId, updatedFields) => {
+    const timestamp = new Date().toISOString();
+    setIssues(prev => prev.map(item => {
+      if (item.id === issueId) {
+        return { ...item, ...updatedFields, updatedAt: timestamp };
+      }
+      return item;
+    }));
+
+    if (selectedIssue && selectedIssue.id === issueId) {
+      setSelectedIssue(prev => ({ ...prev, ...updatedFields, updatedAt: timestamp }));
+    }
+
+    showNotification(`이슈 [${issueId}] 정보가 성공적으로 수정되었습니다.`);
+  };
+
   // 이슈 삭제
   const handleDeleteIssue = (issueId) => {
     if (window.confirm(`정말로 이슈 [${issueId}]를 삭제하시겠습니까?`)) {
@@ -441,6 +458,7 @@ export default function App() {
           fields={fields}
           onClose={() => setSelectedIssue(null)}
           onChangeIssueStatus={handleChangeIssueStatus}
+          onUpdateIssue={handleUpdateIssue}
           onDeleteIssue={handleDeleteIssue}
         />
       )}
