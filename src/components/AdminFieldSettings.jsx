@@ -25,7 +25,8 @@ import {
   Info,
   Lock,
   KeyRound,
-  ArrowLeft
+  ArrowLeft,
+  Pencil
 } from 'lucide-react';
 import { INITIAL_FIELDS } from '../constants/initialData';
 import { updateAdminPassword } from '../utils/security';
@@ -42,8 +43,17 @@ export default function AdminFieldSettings({
   const isMobile = useIsMobile();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [editingField, setEditingField] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPlaceholder, setEditPlaceholder] = useState('');
+  const [editOptions, setEditOptions] = useState([]);
+  const [newOptionInput, setNewOptionInput] = useState('');
+  const [optionError, setOptionError] = useState('');
+
   const addModalBackdropProps = useBackdropClose(() => setShowAddModal(false));
   const passwordModalBackdropProps = useBackdropClose(() => setShowPasswordModal(false));
+  const editModalBackdropProps = useBackdropClose(() => setEditingField(null));
   const [newPassword, setNewPassword] = useState('');
   const [passwordStatusMsg, setPasswordStatusMsg] = useState(null);
 
@@ -212,6 +222,90 @@ export default function AdminFieldSettings({
     setShowAddModal(false);
   };
 
+  // 필드 및 Select 선택 항목 편집 모달 열기
+  const handleOpenEditModal = (field) => {
+    setEditingField(field);
+    setEditName(field.name || '');
+    setEditDescription(field.description || '');
+    setEditPlaceholder(field.placeholder || '');
+    setEditOptions(Array.isArray(field.options) ? [...field.options] : []);
+    setNewOptionInput('');
+    setOptionError('');
+  };
+
+  // Select 선택 항목(아이템) 추가
+  const handleAddOptionItem = () => {
+    const trimmed = newOptionInput.trim();
+    if (!trimmed) {
+      setOptionError('추가할 항목 이름을 입력해주세요.');
+      return;
+    }
+    if (editOptions.some(opt => opt.trim().toLowerCase() === trimmed.toLowerCase())) {
+      setOptionError(`'${trimmed}' 항목은 이미 존재합니다.`);
+      return;
+    }
+    setEditOptions(prev => [...prev, trimmed]);
+    setNewOptionInput('');
+    setOptionError('');
+  };
+
+  // Select 선택 항목 수정
+  const handleUpdateOptionItem = (index, value) => {
+    setEditOptions(prev => prev.map((opt, idx) => (idx === index ? value : opt)));
+    setOptionError('');
+  };
+
+  // Select 선택 항목 삭제
+  const handleRemoveOptionItem = (index) => {
+    if (editOptions.length <= 1) {
+      setOptionError('Select 필드는 최소 1개 이상의 선택 항목이 필요합니다.');
+      return;
+    }
+    setEditOptions(prev => prev.filter((_, idx) => idx !== index));
+    setOptionError('');
+  };
+
+  // 필드 편집 저장
+  const handleSaveFieldEdit = (e) => {
+    e.preventDefault();
+    if (!editingField) return;
+
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      setOptionError('필드 이름을 입력해주세요.');
+      return;
+    }
+
+    let cleanedOptions = editingField.options;
+    if (editingField.type === 'select') {
+      cleanedOptions = editOptions.map(opt => opt.trim()).filter(Boolean);
+      if (cleanedOptions.length === 0) {
+        setOptionError('Select 필드는 최소 1개 이상의 선택 항목이 필요합니다.');
+        return;
+      }
+    }
+
+    setFields(prevFields =>
+      prevFields.map(f => {
+        if (f.id !== editingField.id) return f;
+        return {
+          ...f,
+          name: f.isSystem ? f.name : trimmedName,
+          description: editDescription.trim(),
+          placeholder: editPlaceholder.trim(),
+          ...(f.type === 'select' ? { options: cleanedOptions } : {})
+        };
+      })
+    );
+
+    showToast(
+      editingField.type === 'select'
+        ? `'${editingField.name}' 필드의 선택 항목(${cleanedOptions.length}개)이 저장되었습니다.`
+        : `'${editingField.name}' 필드 정보가 업데이트되었습니다.`
+    );
+    setEditingField(null);
+  };
+
   // 관리자 비밀번호 변경 핸들러
   const handleChangePassword = (e) => {
     e.preventDefault();
@@ -354,35 +448,81 @@ export default function AdminFieldSettings({
                     )}
                   </div>
 
-                  {!field.isSystem && (
-                    <button 
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button
                       type="button"
-                      onClick={() => handleDeleteField(field.id, field.name)}
-                      className="mobile-delete-btn"
-                      title="커스텀 필드 삭제"
-                      aria-label="삭제"
+                      onClick={() => handleOpenEditModal(field)}
+                      className="mobile-edit-btn"
+                      style={{
+                        background: 'none',
+                        border: '1px solid #dfe1e6',
+                        cursor: 'pointer',
+                        color: 'var(--primary)',
+                        padding: '5px 8px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                      }}
+                      title="필드 및 옵션 편집"
+                      aria-label="필드 편집"
                     >
-                      <Trash2 size={16} />
+                      <Pencil size={14} />
+                      <span>편집</span>
                     </button>
-                  )}
+                    {!field.isSystem && (
+                      <button 
+                        type="button"
+                        onClick={() => handleDeleteField(field.id, field.name)}
+                        className="mobile-delete-btn"
+                        title="커스텀 필드 삭제"
+                        aria-label="삭제"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Field Type & Description */}
                 <div style={{ margin: '8px 0', fontSize: '0.82rem', color: 'var(--text-sub)' }}>
-                  <span style={{ 
-                    fontFamily: 'monospace', 
-                    fontSize: '0.75rem', 
-                    backgroundColor: '#f4f5f7', 
-                    padding: '2px 6px', 
-                    borderRadius: 4,
-                    border: '1px solid #dfe1e6',
-                    marginRight: 6
-                  }}>
-                    {field.type === 'textarea' ? 'Text Area (여러줄)' : 
-                     field.type === 'select' ? `Select (${field.options ? field.options.length : 0}개 옵션)` : 
-                     field.type === 'date' ? 'Date (날짜)' : 
-                     field.type === 'number' ? 'Number (숫자)' : 'Text (한줄)'}
-                  </span>
+                  {field.type === 'select' ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(field)}
+                      style={{ 
+                        fontFamily: 'monospace', 
+                        fontSize: '0.75rem', 
+                        backgroundColor: '#eff6ff', 
+                        color: '#1d4ed8',
+                        padding: '2px 8px', 
+                        borderRadius: 4,
+                        border: '1px solid #bfdbfe',
+                        marginRight: 6,
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                      title="클릭하여 선택 항목 편집"
+                    >
+                      {`Select (${field.options ? field.options.length : 0}개 옵션) · 편집`}
+                    </button>
+                  ) : (
+                    <span style={{ 
+                      fontFamily: 'monospace', 
+                      fontSize: '0.75rem', 
+                      backgroundColor: '#f4f5f7', 
+                      padding: '2px 6px', 
+                      borderRadius: 4,
+                      border: '1px solid #dfe1e6',
+                      marginRight: 6
+                    }}>
+                      {field.type === 'textarea' ? 'Text Area (여러줄)' : 
+                       field.type === 'date' ? 'Date (날짜)' : 
+                       field.type === 'number' ? 'Number (숫자)' : 'Text (한줄)'}
+                    </span>
+                  )}
                   <span>{field.description || ''}</span>
                 </div>
 
@@ -467,19 +607,43 @@ export default function AdminFieldSettings({
                     </td>
 
                     <td>
-                      <span style={{ 
-                        fontFamily: 'monospace', 
-                        fontSize: '0.82rem', 
-                        backgroundColor: '#f4f5f7', 
-                        padding: '3px 8px', 
-                        borderRadius: 4,
-                        border: '1px solid #dfe1e6'
-                      }}>
-                        {field.type === 'textarea' ? 'Text Area (여러줄)' : 
-                         field.type === 'select' ? `Select (${field.options ? field.options.length : 0}개)` : 
-                         field.type === 'date' ? 'Date (날짜)' : 
-                         field.type === 'number' ? 'Number (숫자)' : 'Text (한줄)'}
-                      </span>
+                      {field.type === 'select' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(field)}
+                          style={{ 
+                            fontFamily: 'monospace', 
+                            fontSize: '0.82rem', 
+                            backgroundColor: '#eff6ff', 
+                            color: '#1d4ed8',
+                            padding: '3px 9px', 
+                            borderRadius: 4,
+                            border: '1px solid #bfdbfe',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                          }}
+                          title="클릭하여 선택 항목 추가/수정/삭제"
+                        >
+                          <span>{`Select (${field.options ? field.options.length : 0}개)`}</span>
+                          <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>옵션 편집</span>
+                        </button>
+                      ) : (
+                        <span style={{ 
+                          fontFamily: 'monospace', 
+                          fontSize: '0.82rem', 
+                          backgroundColor: '#f4f5f7', 
+                          padding: '3px 8px', 
+                          borderRadius: 4,
+                          border: '1px solid #dfe1e6'
+                        }}>
+                          {field.type === 'textarea' ? 'Text Area (여러줄)' : 
+                           field.type === 'date' ? 'Date (날짜)' : 
+                           field.type === 'number' ? 'Number (숫자)' : 'Text (한줄)'}
+                        </span>
+                      )}
                     </td>
 
                     {/* Mandatory Toggle */}
@@ -525,17 +689,28 @@ export default function AdminFieldSettings({
                     </td>
 
                     <td style={{ textAlign: 'center' }}>
-                      {!field.isSystem ? (
-                        <button 
-                          onClick={() => handleDeleteField(field.id, field.name)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#de350b', padding: 6, borderRadius: 4 }}
-                          title="커스텀 필드 삭제"
+                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(field)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', padding: 6, borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
+                          title="필드 및 선택 옵션 편집"
+                          aria-label="필드 편집"
                         >
-                          <Trash2 size={16} />
+                          <Pencil size={16} />
                         </button>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>고정</span>
-                      )}
+                        {!field.isSystem && (
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteField(field.id, field.name)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#de350b', padding: 6, borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
+                            title="커스텀 필드 삭제"
+                            aria-label="커스텀 필드 삭제"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -664,6 +839,168 @@ export default function AdminFieldSettings({
                 </button>
                 <button type="submit" className="btn-primary">
                   필드 추가하기
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Field & Select Options Modal */}
+      {editingField && (
+        <div className="modal-overlay" {...editModalBackdropProps}>
+          <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <div className="modal-header">
+              <h2>
+                <Pencil size={20} />
+                <span>필드 및 선택 항목 편집</span>
+              </h2>
+              <button type="button" className="modal-close-btn" onClick={() => setEditingField(null)}>
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFieldEdit}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">필드 이름</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    placeholder="필드 이름을 입력하세요"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">설명 / 힌트</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editDescription}
+                    onChange={e => setEditDescription(e.target.value)}
+                    placeholder="사용자에게 표시할 안내 문구"
+                  />
+                </div>
+
+                {editingField.type !== 'select' && editingField.type !== 'date' && (
+                  <div className="form-group">
+                    <label className="form-label">입력 안내 (Placeholder)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editPlaceholder}
+                      onChange={e => setEditPlaceholder(e.target.value)}
+                      placeholder="입력창 내부 안내 문구"
+                    />
+                  </div>
+                )}
+
+                {editingField.type === 'select' && (
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>선택 항목 (Select 옵션)</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-sub)', fontWeight: 500 }}>
+                        총 {editOptions.length}개
+                      </span>
+                    </label>
+
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={newOptionInput}
+                        onChange={e => setNewOptionInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddOptionItem();
+                          }
+                        }}
+                        placeholder="새 항목 입력 (예: pdf툴) 후 추가 또는 Enter"
+                      />
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={handleAddOptionItem}
+                        style={{ whiteSpace: 'nowrap', padding: '0 14px' }}
+                      >
+                        <Plus size={16} />
+                        <span>추가</span>
+                      </button>
+                    </div>
+
+                    {optionError && (
+                      <div style={{ color: 'var(--color-danger)', fontSize: '0.82rem', marginBottom: 8 }}>
+                        {optionError}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        maxHeight: 240,
+                        overflowY: 'auto',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 8,
+                        padding: 8,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        backgroundColor: 'var(--bg-subtle, #f8fafc)',
+                      }}
+                    >
+                      {editOptions.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '16px 8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          등록된 선택 항목이 없습니다. 위 입력창에서 항목을 추가해 주세요.
+                        </div>
+                      ) : (
+                        editOptions.map((opt, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', width: 22, textAlign: 'right', flexShrink: 0 }}>
+                              {idx + 1}.
+                            </span>
+                            <input
+                              type="text"
+                              className="form-input"
+                              value={opt}
+                              onChange={e => handleUpdateOptionItem(idx, e.target.value)}
+                              style={{ padding: '6px 10px', fontSize: '0.88rem' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveOptionItem(idx)}
+                              style={{
+                                background: 'none',
+                                border: '1px solid #fecaca',
+                                color: '#dc2626',
+                                borderRadius: 6,
+                                padding: '6px 8px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                flexShrink: 0,
+                              }}
+                              title="항목 삭제"
+                              aria-label={`${opt} 항목 삭제`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setEditingField(null)}>
+                  취소
+                </button>
+                <button type="submit" className="btn-primary">
+                  변경사항 저장
                 </button>
               </div>
             </form>

@@ -15,15 +15,14 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, AlertCircle, CheckCircle2, Asterisk } from 'lucide-react';
-import { useBackdropClose } from '../utils/useBackdropClose';
+import { X, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssue, currentUser }) {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const firstErrorRef = useRef(null);
-  const backdropProps = useBackdropClose(onClose);
 
   // 활성화된 필드만 추출
   const activeFields = fields.filter(f => f.isEnabled);
@@ -46,6 +45,7 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
       setFormData(initial);
       setErrors({});
       setHasAttemptedSubmit(false);
+      setShowCancelConfirm(false);
     }
   }, [isOpen, fields]);
 
@@ -108,8 +108,17 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
     .filter(f => errors[f.id])
     .map(f => f.name);
 
+  const handleRequestClose = () => {
+    setShowCancelConfirm(true);
+  };
+
+  const handleConfirmDiscard = () => {
+    setShowCancelConfirm(false);
+    onClose();
+  };
+
   return (
-    <div className="modal-overlay" {...backdropProps}>
+    <div className="modal-overlay">
       <div 
         className="modal-container" 
         onClick={e => e.stopPropagation()}
@@ -123,7 +132,7 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
               (필수 항목: {mandatoryFields.length}개)
             </span>
           </h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="닫기">
+          <button type="button" className="modal-close-btn" onClick={handleRequestClose} aria-label="닫기">
             <X size={20} />
           </button>
         </div>
@@ -260,7 +269,7 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn-secondary" onClick={onClose}>
+            <button type="button" className="btn-secondary" onClick={handleRequestClose}>
               취소
             </button>
             <button type="submit" className="btn-primary">
@@ -270,6 +279,51 @@ export default function CreateIssueModal({ isOpen, onClose, fields, onCreateIssu
           </div>
         </form>
       </div>
+
+      {/* 취소 경고 확인창 */}
+      {showCancelConfirm && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 1200, backgroundColor: 'rgba(9, 30, 66, 0.65)' }}
+          role="alertdialog"
+          aria-modal="true"
+        >
+          <div
+            className="modal-container"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: 400, padding: 0, overflow: 'hidden' }}
+          >
+            <div className="modal-header" style={{ backgroundColor: '#fff7e6', borderBottom: '1px solid #ffe58f' }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b7410e', fontSize: '1.05rem' }}>
+                <AlertTriangle size={20} color="#fa8c16" />
+                <span>작성 취소 확인</span>
+              </h2>
+            </div>
+            <div className="modal-body" style={{ padding: '20px 24px' }}>
+              <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.6, fontWeight: 500 }}>
+                작성하시던 내용 삭제됩니다. 정말 취소하시겠습니까?
+              </p>
+            </div>
+            <div className="modal-footer" style={{ padding: '12px 20px', gap: 10 }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setShowCancelConfirm(false)}
+              >
+                아니요 (계속 작성)
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleConfirmDiscard}
+                style={{ color: '#de350b', borderColor: '#ffbdad', backgroundColor: '#ffebe6' }}
+              >
+                예 (창 닫기)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
