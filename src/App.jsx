@@ -64,11 +64,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_ISSUES);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.map(item => ({
-          ...item,
-          id: item.id.replace('JIRA-', 'FLOW-')
-        }));
+        return JSON.parse(saved);
       }
       return INITIAL_ISSUES;
     } catch (e) {

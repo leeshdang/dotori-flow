@@ -128,7 +128,7 @@ export default function SideMenuDrawer({
                   </div>
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>독립 환경 구축 매뉴얼</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>나만의 독립 Jira 환경 만들기 상세 가이드</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>나만의 독립 이슈 트래커 환경 만들기 상세 가이드</div>
                   </div>
                 </div>
                 <ExternalLink size={15} style={{ color: 'var(--text-muted)' }} />

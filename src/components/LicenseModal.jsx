@@ -54,7 +54,7 @@ export default function LicenseModal({ isOpen, onClose }) {
             </h4>
             <p style={{ color: '#5e6c84', fontSize: '0.82rem' }}>
               <strong>Dotori Flow</strong>는 독자적으로 설계 및 개발된 독립 오픈소스 지향 소프트웨어입니다.
-              본 시스템은 호주 Atlassian Pty Ltd의 Jira®, Confluence® 또는 그 계열사의 공식 서비스와 아무런 제휴나 승인, 후원 관계가 없음을 명시합니다.
+              본 시스템은 타사의 상용 이슈 트래커 및 협업 서비스와 아무런 제휴나 승인, 후원 관계가 없음을 명시합니다.
             </p>
           </div>
 
